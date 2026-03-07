@@ -1,0 +1,459 @@
+Build a production-quality SaaS web application called “InvoiceForge”.
+
+This is a custom invoice template builder and generator.
+
+The system allows users to upload their own A4 invoice template, visually mark where fields should appear, name those fields, and later generate invoices where the values automatically fill into the exact positions on the template.
+
+The application must feel modern, handcrafted, and professional, not like a typical AI-generated admin dashboard.
+
+Avoid generic UI kits that look like boilerplate.
+
+Design inspiration should be similar to:
+
+Stripe dashboard UX
+
+Linear interface
+
+Figma editor interactions
+
+The app should feel like a real SaaS product with polished UX.
+
+TECH STACK
+Frontend
+
+React + Vite
+Tailwind CSS
+Konva.js for canvas drawing
+PDF.js for template rendering
+
+Backend
+
+Firebase
+
+Use:
+
+Firebase Authentication
+
+Firestore Database
+
+File Storage
+
+Use Cloudinary instead of Firebase Storage.
+
+PDF generation
+
+Use:
+
+pdf-lib
+
+State management
+
+Use React Context or Zustand.
+
+FIREBASE CONFIG
+Use this configuration:
+
+JavaScript
+
+import { initializeApp } from "firebase/app";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBIYyC0v2KW-NGBjYmtRP1ZWkWSeoO4h8I",
+  authDomain: "invoice-generator-12.firebaseapp.com",
+  projectId: "invoice-generator-12",
+  storageBucket: "invoice-generator-12.firebasestorage.app",
+  messagingSenderId: "465658363744",
+  appId: "1:465658363744:web:8cc41192d9b4054ad12805"
+};
+
+const app = initializeApp(firebaseConfig);
+Enable:
+
+Authentication
+Firestore
+
+CLOUDINARY STORAGE
+Use Cloudinary for storing uploaded invoice templates and generated PDFs.
+
+Cloudinary details:
+
+Cloud name:
+
+
+dhbwpnsc4
+Upload preset:
+
+
+invoice-generator
+The preset is unsigned, meaning uploads can be done directly from frontend.
+
+Upload endpoint:
+
+
+https://api.cloudinary.com/v1_1/dhbwpnsc4/upload
+Upload logic:
+
+Send a POST request with:
+
+
+file
+upload_preset = invoice-generator
+Example upload request:
+
+JavaScript
+
+const formData = new FormData();
+formData.append("file", file);
+formData.append("upload_preset", "invoice-generator");
+
+fetch("https://api.cloudinary.com/v1_1/dhbwpnsc4/upload", {
+  method: "POST",
+  body: formData
+});
+The returned secure_url must be saved in Firestore.
+
+CORE FEATURES
+1 User Authentication
+Users can:
+
+Register
+Login
+Logout
+
+Use Firebase Auth with:
+
+Email + Password
+
+After login redirect to dashboard.
+
+2 Dashboard
+Dashboard layout:
+
+Left sidebar navigation
+
+Sections:
+
+Dashboard
+Templates
+Invoices
+Customers
+Settings
+
+Main panel shows:
+
+Recent templates
+Recent invoices
+Quick stats
+
+3 Upload Invoice Template
+Users can upload:
+
+PDF
+PNG
+JPG
+
+Template must be A4 portrait.
+
+Upload file to Cloudinary.
+
+Save metadata in Firestore.
+
+Template object:
+
+
+templates
+  id
+  userId
+  name
+  fileURL
+  createdAt
+  fields[]
+fileURL must store the Cloudinary secure_url.
+
+4 Template Editor (CORE FEATURE)
+This is the most important part.
+
+When user opens a template they enter a visual editor.
+
+Layout:
+
+Left panel → field settings
+Center → invoice preview canvas
+Right panel → field list
+
+The invoice template is rendered using PDF.js.
+
+On top of it place a Konva canvas overlay.
+
+Users can:
+
+Click and drag to create rectangles.
+
+Each rectangle represents a data field.
+
+Each field stores:
+
+
+id
+name
+type
+x
+y
+width
+height
+fontSize
+alignment
+page
+Field types:
+
+text
+number
+currency
+percentage
+date
+calculated
+
+User must be able to:
+
+Drag fields
+Resize fields
+Delete fields
+Duplicate fields
+
+Each field must be visually highlighted.
+
+5 Field Naming
+After drawing a rectangle a modal appears.
+
+User defines:
+
+Field name
+Field type
+
+Example names:
+
+description
+quantity
+unit_price
+line_total
+tax
+discount
+grand_total
+paid_amount
+balance_due
+
+6 Smart Calculated Fields
+Allow users to create calculated fields.
+
+Example formulas:
+
+
+line_total = quantity * unit_price
+subtotal = sum(line_total)
+tax_amount = subtotal * tax_rate
+grand_total = subtotal + tax_amount
+balance_due = grand_total - paid_amount
+Provide a simple formula editor.
+
+7 Table / Line Items
+Invoices often contain repeating rows.
+
+Implement a Line Items System.
+
+User marks:
+
+description
+quantity
+price
+line_total
+
+Then enable repeatable rows.
+
+When generating invoice users can add multiple items.
+
+Example:
+
+Laptop | 2 | 500 | 1000
+Mouse | 1 | 50 | 50
+
+Totals auto update.
+
+8 Customers Database
+Users can save customers.
+
+Customer object:
+
+
+customers
+  id
+  name
+  email
+  phone
+  address
+When generating invoice they can select a saved customer.
+
+9 Invoice Generator
+When user clicks:
+
+Create Invoice
+
+Show form dynamically generated from template fields.
+
+User fills:
+
+description
+quantity
+price
+tax
+discount
+
+Live preview updates instantly.
+
+10 Generate Final PDF
+Use pdf-lib.
+
+Load original template from the Cloudinary URL.
+
+Insert text at saved coordinates.
+
+Example:
+
+JavaScript
+
+page.drawText(value,{
+ x: field.x,
+ y: field.y,
+ size: field.fontSize
+})
+Allow user to:
+
+Download PDF
+Save invoice
+Share link
+
+11 Invoice Management
+Users can view:
+
+All invoices
+
+Filter by:
+
+customer
+date
+status
+
+Statuses:
+
+Draft
+Sent
+Paid
+Overdue
+
+12 Cloud Storage
+Generated PDFs should also be uploaded to Cloudinary and their URLs stored in Firestore.
+
+13 Autosave Editor
+Template editor must autosave field positions to Firestore.
+
+14 Drag UX Like Design Software
+Interactions must feel smooth like Figma canvas.
+
+Include:
+
+snap to grid
+guidelines
+alignment helpers
+
+15 Responsive UI
+Desktop first.
+
+Editor optimized for desktop.
+
+Dashboard mobile responsive.
+
+UI STYLE
+Avoid generic dashboards.
+
+Use:
+
+soft shadows
+rounded cards
+clean typography
+minimal color palette
+
+Primary color suggestion:
+
+indigo / slate.
+
+Animations:
+
+subtle hover effects
+smooth transitions
+
+FOLDER STRUCTURE
+
+src
+  components
+  pages
+  hooks
+  contexts
+  utils
+  firebase
+  editor
+Editor folder contains:
+
+CanvasLayer
+FieldBox
+FieldSettingsPanel
+TemplateToolbar
+
+FIRESTORE SCHEMA
+users
+
+
+users
+  uid
+  email
+  createdAt
+templates
+
+
+templates
+  id
+  userId
+  name
+  fileURL
+  fields[]
+invoices
+
+
+invoices
+  id
+  templateId
+  customerId
+  values
+  totals
+  createdAt
+customers
+
+
+customers
+  id
+  name
+  email
+  address
+SECURITY
+Firestore rules must ensure:
+
+Users can only access their own templates, invoices, and customers.
+
+FINAL PRODUCT
+The application must behave like a real SaaS invoice automation platform.
+
+Businesses should be able to:
+
+Upload their own invoice design
+Map fields visually
+Generate unlimited invoices from it
+
+All templates and generated files are stored in Cloudinary, while metadata is stored in Firestore.
