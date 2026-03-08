@@ -11,6 +11,8 @@ export const templateFieldSchema = z.object({
   fontSize: z.number().default(12),
   alignment: z.enum(["left", "center", "right"]).default("left"),
   page: z.number().default(1),
+  fontFamily: z.string().optional().default("Helvetica"),
+  color: z.string().optional().default("#1a1a1a"),
 });
 
 export const insertTemplateSchema = z.object({

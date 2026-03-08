@@ -1,19 +1,66 @@
+import { useState } from "react";
 import { useTemplates, useDeleteTemplate } from "@/hooks/use-templates";
 import { useAuth } from "@/hooks/use-auth";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Plus, FileText, Trash2, MoreVertical, Edit } from "lucide-react";
+import { Plus, FileText, MoreVertical, Edit, Trash2 } from "lucide-react";
 import { format } from "date-fns";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
+// ─── Thumbnail component ──────────────────────────────────────────────────────
+// Tries to render the Cloudinary image. Falls back gracefully if it fails.
+function TemplateThumbnail({ fileURL, name }: { fileURL?: string; name: string }) {
+  const [errored, setErrored] = useState(false);
+
+  // Build an optimised Cloudinary thumbnail URL if the URL is from Cloudinary.
+  // We request a 400-wide, quality-auto version so it loads fast.
+  const thumbUrl = (() => {
+    if (!fileURL) return null;
+    if (fileURL.includes("res.cloudinary.com")) {
+      // Insert transformation before the version/filename segment
+      return fileURL.replace("/upload/", "/upload/w_400,q_auto,f_auto/");
+    }
+    return fileURL;
+  })();
+
+  if (!thumbUrl || errored) {
+    return (
+      <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-slate-100 to-slate-50 gap-3">
+        <FileText className="w-14 h-14 text-slate-300" />
+        <span className="text-xs text-slate-400 font-medium px-4 text-center truncate max-w-full">{name}</span>
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={thumbUrl}
+      alt={name}
+      onError={() => setErrored(true)}
+      className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
+      loading="lazy"
+    />
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
 export default function Templates() {
   const { user, loading: authLoading } = useAuth();
   const { data: templates = [], isLoading, error } = useTemplates();
   const deleteMutation = useDeleteTemplate();
 
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const templateToDelete = templates.find(t => t.id === deleteId);
+
   if (authLoading) {
-    return <div className="p-8 text-center">Loading authentication...</div>;
+    return <div className="p-8 text-center text-slate-500">Loading authentication...</div>;
   }
 
   if (!user) {
@@ -22,6 +69,8 @@ export default function Templates() {
 
   return (
     <div className="space-y-8">
+
+      {/* ── Page header ──────────────────────────────────────────────────────── */}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Templates</h1>
@@ -34,21 +83,18 @@ export default function Templates() {
         </Button>
       </div>
 
+      {/* ── Firebase error ───────────────────────────────────────────────────── */}
       {error && (
         <Alert variant="destructive" className="rounded-xl">
           <AlertDescription className="space-y-3">
-            <div>
-              <strong>Firestore Setup Required</strong>
-            </div>
-            <div className="text-sm">
-              Your Firebase project needs to be configured. Please follow these steps:
-            </div>
+            <div><strong>Firestore Setup Required</strong></div>
+            <div className="text-sm">Your Firebase project needs to be configured. Please follow these steps:</div>
             <ol className="text-sm list-decimal list-inside space-y-2">
               <li>Open <a href="https://console.firebase.google.com" target="_blank" rel="noopener noreferrer" className="underline font-semibold">Firebase Console</a></li>
               <li>Select project: <strong>invoice-generator-12</strong></li>
               <li>Go to <strong>Firestore Database</strong> and click Create Database</li>
               <li>Choose <strong>production mode</strong> and select a region</li>
-              <li>Click the <strong>Rules</strong> tab and paste the security rules (see FIREBASE_SETUP_INSTRUCTIONS.md)</li>
+              <li>Click the <strong>Rules</strong> tab and paste the security rules</li>
               <li>Enable <strong>Email/Password</strong> authentication</li>
               <li>Reload this page</li>
             </ol>
@@ -59,74 +105,142 @@ export default function Templates() {
         </Alert>
       )}
 
+      {/* ── Loading skeletons ─────────────────────────────────────────────────── */}
       {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map(i => (
-            <div key={i} className="h-64 bg-slate-100 animate-pulse rounded-2xl"></div>
+            <div key={i} className="rounded-2xl border border-slate-100 overflow-hidden">
+              <div className="aspect-[1/1.4] bg-slate-100 animate-pulse" />
+              <div className="p-5 space-y-2">
+                <div className="h-4 bg-slate-100 animate-pulse rounded-lg w-3/4" />
+                <div className="h-3 bg-slate-100 animate-pulse rounded-lg w-1/2" />
+              </div>
+            </div>
           ))}
         </div>
       ) : templates.length === 0 ? (
+
+        /* ── Empty state ─────────────────────────────────────────────────────── */
         <div className="bg-white rounded-3xl border border-dashed border-slate-200 p-16 text-center flex flex-col items-center">
           <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mb-6">
             <FileText className="w-10 h-10 text-primary" />
           </div>
           <h3 className="text-xl font-bold text-slate-900 mb-2">No templates yet</h3>
-          <p className="text-slate-500 max-w-md mb-8">Upload a PDF or image of your invoice layout to start mapping dynamic fields.</p>
+          <p className="text-slate-500 max-w-md mb-8">
+            Upload a PDF or image of your invoice layout to start mapping dynamic fields.
+          </p>
           <Button asChild className="rounded-xl px-8 h-12 shadow-lg shadow-primary/20">
             <Link href="/templates/new">Create First Template</Link>
           </Button>
         </div>
+
       ) : (
+
+        /* ── Template grid ───────────────────────────────────────────────────── */
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {templates.map((template) => (
-            <div key={template.id} className="group relative bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-xl hover:border-primary/30 transition-all duration-300">
-              <div className="aspect-[1/1.4] bg-slate-100 relative overflow-hidden flex items-center justify-center">
-                {/* Visual preview if we had thumbnails, for now just an icon */}
-                <FileText className="w-16 h-16 text-slate-300" />
-                
-                {/* Overlay actions */}
-                <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 backdrop-blur-sm">
-                  <Button asChild variant="secondary" className="rounded-full font-medium">
+          {templates.map(template => (
+            <div
+              key={template.id}
+              className="group relative bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-xl hover:border-primary/30 transition-all duration-300"
+            >
+              {/* ── Thumbnail ─────────────────────────────────────────────── */}
+              <div className="aspect-[1/1.4] relative overflow-hidden bg-slate-100">
+                <TemplateThumbnail fileURL={template.fileURL} name={template.name} />
+
+                {/* Hover overlay with Edit button */}
+                <div className="absolute inset-0 bg-slate-900/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-3 backdrop-blur-[2px]">
+                  <Button asChild variant="secondary" className="rounded-full font-medium shadow-lg">
                     <Link href={`/templates/edit/${template.id}`}>
-                      <Edit className="w-4 h-4 mr-2" /> Edit
+                      <Edit className="w-4 h-4 mr-2" /> Edit Template
                     </Link>
                   </Button>
                 </div>
-              </div>
-              <div className="p-5">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-bold text-slate-900 text-lg truncate pr-4">{template.name}</h3>
-                    <p className="text-xs text-slate-500 mt-1">
-                      {format(new Date(template.createdAt), 'MMM d, yyyy')} • {template.fields.length} fields
-                    </p>
-                  </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 -mr-2 text-slate-400 hover:text-slate-900">
-                        <MoreVertical className="w-4 h-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="rounded-xl">
-                      <DropdownMenuItem asChild>
-                        <Link href={`/templates/edit/${template.id}`} className="cursor-pointer">Edit Template</Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        className="text-destructive focus:text-destructive cursor-pointer"
-                        onClick={() => {
-                          if(confirm('Delete template?')) deleteMutation.mutate(template.id);
-                        }}
-                      >
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+
+                {/* Field count badge — always visible */}
+                <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm text-primary text-[11px] font-bold px-2 py-0.5 rounded-full border border-primary/20 shadow-sm">
+                  {template.fields?.length ?? 0} fields
                 </div>
+              </div>
+
+              {/* ── Card footer ──────────────────────────────────────────── */}
+              <div className="p-4 flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <h3 className="font-bold text-slate-900 text-base truncate">{template.name}</h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    {template.createdAt
+                      ? format(
+                          template.createdAt?.toDate
+                            ? template.createdAt.toDate()
+                            : new Date(template.createdAt),
+                          "MMM d, yyyy"
+                        )
+                      : "—"}
+                  </p>
+                </div>
+
+                {/* Three-dot menu */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost" size="icon"
+                      className="h-8 w-8 flex-shrink-0 text-slate-400 hover:text-slate-700 -mr-1"
+                    >
+                      <MoreVertical className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="rounded-xl w-44">
+                    <DropdownMenuItem asChild className="cursor-pointer">
+                      <Link href={`/templates/edit/${template.id}`}>
+                        <Edit className="w-4 h-4 mr-2" /> Edit Template
+                      </Link>
+                    </DropdownMenuItem>
+                    <div className="h-px bg-slate-100 my-1" />
+                    <DropdownMenuItem
+                      className="cursor-pointer text-destructive focus:text-destructive focus:bg-red-50"
+                      onClick={() => setDeleteId(template.id)}
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" /> Delete Template
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           ))}
         </div>
       )}
+
+      {/* ── Delete confirmation dialog ────────────────────────────────────────── */}
+      <AlertDialog open={!!deleteId} onOpenChange={open => { if (!open) setDeleteId(null); }}>
+        <AlertDialogContent className="rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <div className="w-9 h-9 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                <Trash2 className="w-4 h-4 text-destructive" />
+              </div>
+              Delete Template?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-500 leading-relaxed">
+              You are about to permanently delete{" "}
+              <span className="font-semibold text-slate-700">{templateToDelete?.name}</span>.
+              Any invoices already generated from this template will not be affected,
+              but you will no longer be able to create new invoices using it.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="rounded-xl bg-destructive hover:bg-destructive/90 text-white"
+              onClick={() => {
+                if (deleteId) deleteMutation.mutate(deleteId);
+                setDeleteId(null);
+              }}
+            >
+              Delete Template
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   );
 }

@@ -38,6 +38,15 @@ export function useInvoice(id: string) {
   });
 }
 
+// in use-invoices.ts
+export function useDeleteInvoice() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteDoc(doc(db, "invoices", id)),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["invoices"] }),
+  });
+}
+
 export function useCreateInvoice() {
   const { user } = useAuth();
   const queryClient = useQueryClient();

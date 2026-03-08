@@ -1,19 +1,39 @@
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, FileText, Users, FileSpreadsheet, LogOut, Loader2 } from "lucide-react";
+import {
+  LayoutDashboard, FileText, Users, FileSpreadsheet,
+  LogOut, Loader2, ChevronLeft, ChevronRight, Menu, X,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// ─── Nav config ───────────────────────────────────────────────────────────────
 const NAV_ITEMS = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/templates", label: "Templates", icon: FileText },
-  { href: "/customers", label: "Customers", icon: Users },
-  { href: "/invoices", label: "Invoices", icon: FileSpreadsheet },
+  { href: "/",          label: "Dashboard", icon: LayoutDashboard },
+  { href: "/templates", label: "Templates", icon: FileText        },
+  { href: "/customers", label: "Customers", icon: Users           },
+  { href: "/invoices",  label: "Invoices",  icon: FileSpreadsheet },
 ];
 
+const STORAGE_KEY = "invio_sidebar_collapsed";
+
+// ─── Root layout ──────────────────────────────────────────────────────────────
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, loading, signOut } = useAuth();
   const [location] = useLocation();
+
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    try { return localStorage.getItem(STORAGE_KEY) === "true"; } catch { return false; }
+  });
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    try { localStorage.setItem(STORAGE_KEY, String(collapsed)); } catch {}
+  }, [collapsed]);
+
+  // Close mobile drawer on navigation
+  useEffect(() => { setMobileOpen(false); }, [location]);
 
   if (loading) {
     return (
@@ -23,13 +43,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!user) {
-    return <>{children}</>; // Render auth pages without sidebar
-  }
+  if (!user) return <>{children}</>;
 
-  // If we are in the editor or generator, we might want a different layout, 
-  // but for simplicity we'll keep the sidebar unless it's the fullscreen editor.
-  const isFullscreen = location.includes('/templates/edit/') || location === '/templates/new';
+  const isFullscreen =
+    location.includes("/templates/edit/") || location === "/templates/new";
 
   if (isFullscreen) {
     return <div className="min-h-screen bg-slate-100 flex flex-col">{children}</div>;
@@ -37,62 +54,300 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-slate-200 flex flex-col fixed inset-y-0 z-10">
-        <div className="h-16 flex items-center px-6 border-b border-slate-100">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center mr-3">
-            <FileSpreadsheet className="w-5 h-5 text-white" />
-          </div>
-          <span className="font-bold text-xl tracking-tight text-slate-900">Invoio</span>
-        </div>
 
-        <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
-          {NAV_ITEMS.map((item) => {
-            const isActive = location === item.href || (item.href !== '/' && location.startsWith(item.href));
-            return (
-              <Link key={item.href} href={item.href} className={cn(
-                "flex items-center px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group",
-                isActive 
-                  ? "bg-primary text-white shadow-md shadow-primary/20" 
-                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-              )}>
-                <item.icon className={cn(
-                  "w-5 h-5 mr-3 transition-colors",
-                  isActive ? "text-white" : "text-slate-400 group-hover:text-slate-600"
-                )} />
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
+      {/* ── Mobile backdrop ───────────────────────────────────────────────── */}
+      <div
+        onClick={() => setMobileOpen(false)}
+        className={cn(
+          "fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-20 md:hidden transition-opacity duration-300",
+          mobileOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none",
+        )}
+      />
 
-        <div className="p-4 border-t border-slate-100">
-          <div className="flex items-center px-3 py-3 mb-2 rounded-xl bg-slate-50 border border-slate-100">
-            <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold text-xs uppercase">
-              {user.email?.[0] || 'U'}
-            </div>
-            <div className="ml-3 overflow-hidden">
-              <p className="text-sm font-medium text-slate-900 truncate">{user.email}</p>
-              <p className="text-xs text-slate-500">Free Plan</p>
-            </div>
-          </div>
-          <Button 
-            variant="ghost" 
-            className="w-full justify-start text-slate-600 hover:text-destructive hover:bg-destructive/10"
-            onClick={signOut}
-          >
-            <LogOut className="w-4 h-4 mr-2" />
-            Sign Out
-          </Button>
-        </div>
+      {/* ── Desktop sidebar ───────────────────────────────────────────────── */}
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-30 hidden md:flex flex-col",
+          "bg-white border-r border-slate-100",
+          "shadow-[2px_0_20px_rgba(0,0,0,0.04)]",
+          "transition-[width] duration-300 ease-in-out ",
+          collapsed ? "w-[72px]" : "w-64",
+        )}
+      >
+        <SidebarInner
+          collapsed={collapsed}
+          onToggleCollapse={() => setCollapsed(v => !v)}
+          location={location}
+          user={user}
+          signOut={signOut}
+        />
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 ml-64 min-h-screen">
-        <div className="max-w-6xl mx-auto p-8">
+      {/* ── Mobile sidebar ────────────────────────────────────────────────── */}
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-30 flex flex-col md:hidden",
+          "bg-white border-r border-slate-100 w-64",
+          "shadow-[4px_0_32px_rgba(0,0,0,0.10)]",
+          "transition-transform duration-300 ease-in-out",
+          mobileOpen ? "translate-x-0" : "-translate-x-full",
+        )}
+      >
+        <SidebarInner
+          collapsed={false}
+          onToggleCollapse={() => setMobileOpen(false)}
+          location={location}
+          user={user}
+          signOut={signOut}
+          isMobileClose
+        />
+      </aside>
+
+      {/* ── Page content ──────────────────────────────────────────────────── */}
+      <main
+        className={cn(
+          "flex-1 min-h-screen flex flex-col",
+          "md:transition-[margin-left] md:duration-300 md:ease-in-out",
+          collapsed ? "md:ml-[72px]" : "md:ml-64",
+        )}
+      >
+        {/* Mobile top bar */}
+        <header className="md:hidden sticky top-0 z-10 h-14 flex items-center gap-3 px-4 bg-white border-b border-slate-100 shadow-sm">
+          <button
+            onClick={() => setMobileOpen(true)}
+            className="p-2 rounded-xl text-slate-500 hover:bg-slate-100 active:bg-slate-200 transition-colors"
+            aria-label="Open menu"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+          <img
+            src="/invio-logo.svg"
+            alt="Invio"
+            className="h-7 w-auto"
+            onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
+          />
+        </header>
+
+        <div className="flex-1 max-w-6xl w-full mx-auto p-5 md:p-8">
           {children}
         </div>
       </main>
     </div>
+  );
+}
+
+// ─── Sidebar inner content ────────────────────────────────────────────────────
+function SidebarInner({
+  collapsed,
+  onToggleCollapse,
+  location,
+  user,
+  signOut,
+  isMobileClose = false,
+}: {
+  collapsed: boolean;
+  onToggleCollapse: () => void;
+  location: string;
+  user: any;
+  signOut: () => void;
+  isMobileClose?: boolean;
+}) {
+  const initial = (user.displayName?.[0] ?? user.email?.[0] ?? "U").toUpperCase();
+
+  return (
+    <>
+      {/* ── Logo header ───────────────────────────────────────────────── */}
+      <div
+        className={cn(
+          "h-16 flex items-center flex-shrink-0 border-b border-slate-100 relative",
+          collapsed ? "justify-center px-0" : "px-5 justify-between",
+        )}
+      >
+        {/* Full logo — fades out when collapsed */}
+        <div
+          className={cn(
+            "flex items-center gap-2.5 transition-all duration-300 overflow-hidden",
+            collapsed ? "w-0 opacity-0 pointer-events-none" : "w-auto opacity-100",
+          )}
+        >
+          <img
+            src="/invio-logo.svg"
+            alt="Invio"
+            className="h-8 w-auto flex-shrink-0"
+            onError={e => {
+              const img = e.target as HTMLImageElement;
+              img.style.display = "none";
+              (img.nextElementSibling as HTMLElement)?.classList.remove("hidden");
+            }}
+          />
+          {/* Text fallback if SVG fails to load */}
+          <span className="hidden font-bold text-xl tracking-tight text-slate-900">Invio</span>
+        </div>
+
+        {/* Icon-only logo mark — visible only when collapsed */}
+        {collapsed && (
+          <img
+            src="/invio-logo.svg"
+            alt="Invio"
+            className="h-8 w-8 object-contain"
+            onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
+          />
+        )}
+
+        {/* Toggle button */}
+        <button
+          onClick={onToggleCollapse}
+          aria-label={isMobileClose ? "Close menu" : collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          className={cn(
+            "flex items-center justify-center transition-all duration-200",
+            isMobileClose
+              // Mobile: plain icon button in header
+              ? "w-8 h-8 rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 flex-shrink-0"
+              // Desktop: floating pill on the sidebar edge
+              : cn(
+                  "absolute -right-3 top-1/2 -translate-y-1/2 z-100",
+                  "w-6 h-6 rounded-full bg-white border border-slate-200 shadow-md",
+                  "text-slate-400 hover:bg-primary hover:text-white hover:border-primary",
+                  "hover:scale-110 active:scale-95",
+                ),
+          )}
+        >
+          {isMobileClose
+            ? <X className="w-4 h-4" />
+            : collapsed
+              ? <ChevronRight className="w-3.5 h-3.5" />
+              : <ChevronLeft  className="w-3.5 h-3.5" />
+          }
+        </button>
+      </div>
+
+      {/* ── Navigation ────────────────────────────────────────────────── */}
+      <nav className="flex-1 overflow-y-auto overflow-x-hidden py-4 px-3 space-y-0.5">
+
+        {!collapsed && (
+          <p className="px-3 pb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest select-none">
+            Menu
+          </p>
+        )}
+
+        {NAV_ITEMS.map(item => {
+          const isActive =
+            location === item.href ||
+            (item.href !== "/" && location.startsWith(item.href));
+
+          return (
+            <div key={item.href} className="relative group/nav">
+              <Link
+                href={item.href}
+                className={cn(
+                  "flex items-center rounded-xl text-sm font-medium",
+                  "transition-all duration-200",
+                  collapsed
+                    ? "justify-center h-11 w-11 mx-auto"
+                    : "px-3 py-2.5 gap-3",
+                  isActive
+                    ? "bg-primary text-white shadow-lg shadow-primary/20"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+                )}
+              >
+                <item.icon
+                  className={cn(
+                    "w-5 h-5 flex-shrink-0 transition-colors",
+                    isActive
+                      ? "text-white"
+                      : "text-slate-400 group-hover/nav:text-slate-700",
+                  )}
+                />
+                {!collapsed && (
+                  <>
+                    <span className="truncate flex-1 overflow-hidden">{item.label}</span>
+                    {isActive && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-white/60 flex-shrink-0" />
+                    )}
+                  </>
+                )}
+              </Link>
+
+              {/* Tooltip — only when collapsed on desktop */}
+              {collapsed && (
+                <div className={cn(
+                  "absolute  left-full top-1/2 -translate-y-1/2 ml-3 z-50",
+                  "px-2.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap",
+                  "bg-slate-900 text-white shadow-xl",
+                  "pointer-events-none select-none",
+                  "opacity-0 group-hover/nav:opacity-100",
+                  "translate-x-1 group-hover/nav:translate-x-0",
+                  "transition-all duration-150",
+                )}>
+                  {item.label}
+                  {/* Arrow pointing left */}
+                  <span className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-slate-900" />
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </nav>
+
+      {/* ── User footer ───────────────────────────────────────────────── */}
+      <div className={cn(
+        "flex-shrink-0 border-t border-slate-100 space-y-1",
+        collapsed ? "p-2" : "p-3",
+      )}>
+
+        {/* User info card */}
+        <div className={cn(
+          "flex items-center rounded-xl bg-slate-50 border border-slate-100 overflow-hidden",
+          collapsed ? "justify-center p-2" : "px-3 py-2.5 gap-3",
+        )}>
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-indigo-500 flex items-center justify-center text-white font-bold text-xs flex-shrink-0 shadow-sm ring-2 ring-white">
+            {initial}
+          </div>
+          {!collapsed && (
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-slate-800 truncate leading-none">
+                {user.displayName || user.email?.split("@")[0]}
+              </p>
+              <p className="text-[11px] text-slate-400 truncate mt-0.5">{user.email}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Sign out */}
+        <div className="relative group/signout">
+          {collapsed ? (
+            <button
+              onClick={signOut}
+              className="w-full flex items-center justify-center h-10 rounded-xl text-slate-400 hover:text-destructive hover:bg-red-50 transition-all duration-200"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          ) : (
+            <Button
+              variant="ghost" size="sm" onClick={signOut}
+              className="w-full justify-start h-9 px-3 text-slate-500 hover:text-destructive hover:bg-red-50 rounded-xl font-medium"
+            >
+              <LogOut className="w-4 h-4 mr-2 flex-shrink-0" />
+              Sign Out
+            </Button>
+          )}
+
+          {/* Tooltip for sign-out when collapsed */}
+          {collapsed && (
+            <div className={cn(
+              "absolute left-full top-1/2 -translate-y-1/2 ml-3 z-50",
+              "px-2.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap",
+              "bg-slate-900 text-white shadow-xl pointer-events-none select-none",
+              "opacity-0 group-hover/signout:opacity-100",
+              "translate-x-1 group-hover/signout:translate-x-0",
+              "transition-all duration-150",
+            )}>
+              Sign Out
+              <span className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-slate-900" />
+            </div>
+          )}
+        </div>
+      </div>
+    </>
   );
 }

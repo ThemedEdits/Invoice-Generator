@@ -9,50 +9,82 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, ArrowLeft, Download, Plus, Trash2, CheckCircle2, FileText } from "lucide-react";
-import { PDFDocument, rgb } from 'pdf-lib';
+import { PDFDocument, PDFFont, rgb, StandardFonts } from "pdf-lib";
 import { useToast } from "@/hooks/use-toast";
-import { Template } from "@shared/schema";
+import {
+  FIELD_TYPES, AUTO_COMPUTED_FIELDS, FieldTypeValue,
+  hexToRgb01, toPdfLibFontName, wrapText,
+} from "./template-editor";
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+interface LineItem {
+  description: string;
+  quantity:    number;
+  unitPrice:   number;
+  lineTotal:   number;
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const fmt = (n: number) =>
+  n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+const parseNum = (v: string) => parseFloat(v.replace(/,/g, "")) || 0;
+
+const formatCurrencyInput = (raw: string) => {
+  const digits = raw.replace(/[^0-9.]/g, "");
+  const parts  = digits.split(".");
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return parts.slice(0, 2).join(".");
+};
+
+// Line height multiplier used in PDF to match visual spacing
+const LINE_HEIGHT_RATIO = 1.35;
+// Gap between line-item rows (points)
+const ROW_GAP = 6;
+
+// ─── Component ────────────────────────────────────────────────────────────────
 export default function InvoiceGenerator() {
   const [, setLocation] = useLocation();
-  const { toast } = useToast();
+  const { toast }       = useToast();
   const { data: templates = [], isLoading: loadingTpls } = useTemplates();
   const { data: customers = [], isLoading: loadingCusts } = useCustomers();
   const createInvoice = useCreateInvoice();
 
-  const [step, setStep] = useState(1);
+  const [step,       setStep]       = useState(1);
   const [templateId, setTemplateId] = useState("");
   const [customerId, setCustomerId] = useState("");
-  
-  // Form values corresponding to template fields
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
-  
-  const [lineItems, setLineItems] = useState([{ desc: "", qty: 1, price: 0 }]);
-  const [taxRate, setTaxRate] = useState(0);
-  const [discount, setDiscount] = useState(0);
-
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedUrl, setGeneratedUrl] = useState("");
+  const [lineItems, setLineItems]   = useState<LineItem[]>([
+    { description: "", quantity: 1, unitPrice: 0, lineTotal: 0 },
+  ]);
+  const [taxPercent,      setTaxPercent]      = useState("0");
+  const [discountAmount,  setDiscountAmount]  = useState("0");
+  const [amountPaid,      setAmountPaid]      = useState("0");
+  const [isGenerating,    setIsGenerating]    = useState(false);
+  const [generatedUrl,    setGeneratedUrl]    = useState("");
 
   const activeTemplate = templates.find(t => t.id === templateId);
 
-  // Auto-fill template fields that might match customer data
-  const handleCustomerSelect = (id: string) => {
-    setCustomerId(id);
-    const customer = customers.find(c => c.id === id);
+  // ── Derived totals ─────────────────────────────────────────────────────────
+  const subtotal         = lineItems.reduce((s, li) => s + li.lineTotal, 0);
+  const taxAmt           = subtotal * (parseNum(taxPercent) / 100);
+  const discountAmt      = parseNum(discountAmount);
+  const paidAmt          = parseNum(amountPaid);
+  const grandTotal       = subtotal + taxAmt - discountAmt;
+  const remainingBalance = grandTotal - paidAmt;
+
+  // ── Customer auto-fill ─────────────────────────────────────────────────────
+  const handleCustomerSelect = (cid: string) => {
+    setCustomerId(cid);
+    const customer = customers.find(c => c.id === cid);
     if (customer && activeTemplate) {
-      const newVals = { ...fieldValues };
+      const nv = { ...fieldValues };
       activeTemplate.fields.forEach(f => {
-        const lowerName = f.name.toLowerCase();
-        if (lowerName.includes("name") || lowerName.includes("client")) newVals[f.name] = customer.name;
-        if (lowerName.includes("email")) newVals[f.name] = customer.email;
-        if (lowerName.includes("address")) newVals[f.name] = customer.address || "";
-        if (lowerName.includes("phone")) newVals[f.name] = customer.phone || "";
-        if (lowerName.includes("date")) newVals[f.name] = new Date().toLocaleDateString();
+        if (f.type === "client_name")    nv[f.type] = customer.name;
+        if (f.type === "client_address") nv[f.type] = customer.address || "";
       });
-      setFieldValues(newVals);
+      setFieldValues(nv);
     }
   };
 
@@ -64,54 +96,54 @@ export default function InvoiceGenerator() {
     setStep(step + 1);
   };
 
-  const addLineItem = () => setLineItems([...lineItems, { desc: "", qty: 1, price: 0 }]);
-  const updateLineItem = (index: number, key: string, val: string | number) => {
-    const newItems = [...lineItems];
-    newItems[index] = { ...newItems[index], [key]: val };
-    setLineItems(newItems);
+  // ── Line item management ───────────────────────────────────────────────────
+  const updateLineItem = (idx: number, key: keyof LineItem, val: string | number) => {
+    setLineItems(lineItems.map((li, i) => {
+      if (i !== idx) return li;
+      const next = { ...li, [key]: val };
+      next.lineTotal = next.quantity * next.unitPrice;
+      return next;
+    }));
   };
-  const removeLineItem = (index: number) => setLineItems(lineItems.filter((_, i) => i !== index));
 
-  const subtotal = lineItems.reduce((acc, item) => acc + (item.qty * item.price), 0);
-  const tax = subtotal * (taxRate / 100);
-  const grandTotal = subtotal + tax - discount;
+  const addLineItem    = () => setLineItems([...lineItems, { description: "", quantity: 1, unitPrice: 0, lineTotal: 0 }]);
+  const removeLineItem = (idx: number) => setLineItems(lineItems.filter((_, i) => i !== idx));
 
+  // ── Computed value resolver ────────────────────────────────────────────────
+  const getComputedValue = (type: string): string => {
+    switch (type) {
+      case "subtotal":          return `$${fmt(subtotal)}`;
+      case "grand_total":       return `$${fmt(grandTotal)}`;
+      case "remaining_balance": return `$${fmt(remainingBalance)}`;
+      default:                  return "";
+    }
+  };
+
+  const headerFieldTypes: FieldTypeValue[] = [
+    "invoice_number","invoice_date","due_date","client_name","client_address",
+  ];
+
+  const templateHasField = (type: FieldTypeValue) =>
+    activeTemplate?.fields.some(f => f.type === type);
+
+  // ── PDF Generation ─────────────────────────────────────────────────────────
   const generatePDF = async () => {
     if (!activeTemplate) return;
     setIsGenerating(true);
 
     try {
-      // 1. Fetch original template file
-      const templateBytes = await fetch(activeTemplate.fileURL).then(res => res.arrayBuffer());
-      
-      // 2. Load PDF (if image uploaded as background, we'd create blank PDF and draw image. 
-      // Assuming for now they uploaded a PDF to Cloudinary as requested, or Cloudinary provides a PDF format)
-      // Note: If Cloudinary returned a JPG, pdf-lib can't load it via load(). 
-      // We must check extension.
-      let pdfDoc;
+      const templateBytes = await fetch(activeTemplate.fileURL).then(r => r.arrayBuffer());
 
+      let pdfDoc: PDFDocument;
       try {
-        // Try loading as PDF first
         pdfDoc = await PDFDocument.load(templateBytes);
       } catch {
-        // If it fails, treat as image
         pdfDoc = await PDFDocument.create();
         const page = pdfDoc.addPage([595.28, 841.89]);
-
         let img;
-
-        try {
-          img = await pdfDoc.embedJpg(templateBytes);
-        } catch {
-          img = await pdfDoc.embedPng(templateBytes);
-        }
-
-        page.drawImage(img, {
-          x: 0,
-          y: 0,
-          width: 595.28,
-          height: 841.89,
-        });
+        try { img = await pdfDoc.embedJpg(templateBytes); }
+        catch { img = await pdfDoc.embedPng(templateBytes); }
+        page.drawImage(img, { x: 0, y: 0, width: 595.28, height: 841.89 });
       }
 
       const pages = pdfDoc.getPages();
@@ -119,91 +151,234 @@ export default function InvoiceGenerator() {
       const firstPage = pages[0];
       const { height } = firstPage.getSize();
 
-      // 3. Draw text fields
-      activeTemplate.fields.forEach(field => {
-        let textToDraw = fieldValues[field.name] || "";
-        
-        // Auto calculate totals if field name matches
-        if (field.name.toLowerCase() === 'subtotal') textToDraw = `$${subtotal.toFixed(2)}`;
-        if (field.name.toLowerCase() === 'tax') textToDraw = `$${tax.toFixed(2)}`;
-        if (field.name.toLowerCase() === 'total' || field.name.toLowerCase() === 'grandtotal') textToDraw = `$${grandTotal.toFixed(2)}`;
+      // ── Font cache ───────────────────────────────────────────────────────
+      const fontCache: Record<string, PDFFont> = {};
+      const getFont = async (fontFamily?: string): Promise<PDFFont> => {
+        const key = toPdfLibFontName(fontFamily ?? "Helvetica");
+        if (!fontCache[key]) {
+          fontCache[key] = await pdfDoc.embedFont(
+            StandardFonts[key as keyof typeof StandardFonts] ?? StandardFonts.Helvetica
+          );
+        }
+        return fontCache[key];
+      };
 
-        // PDF origin is bottom left, Konva is top left
-        const pdfY = height - field.y - field.fontSize;
-        
-        firstPage.drawText(textToDraw, {
-          x: field.x,
-          y: pdfY,
-          size: field.fontSize,
-          color: rgb(0.1, 0.1, 0.1),
-        });
-      });
+      // ── Alignment X helper ───────────────────────────────────────────────
+      const getDrawX = (text: string, font: PDFFont, size: number, fx: number, fw: number, align?: string) => {
+        if (align === "center") return fx + (fw - font.widthOfTextAtSize(text, size)) / 2;
+        if (align === "right")  return fx +  fw - font.widthOfTextAtSize(text, size);
+        return fx;
+      };
 
-      // 4. Save and Upload
+      // ── Draw non-line-item fields ────────────────────────────────────────
+      for (const field of activeTemplate.fields) {
+        const f    = field as any;
+        const type = field.type as FieldTypeValue;
+        if (["description","quantity","unit_price","line_total"].includes(type)) continue;
+
+        let text = "";
+        if (AUTO_COMPUTED_FIELDS.includes(type)) {
+          text = getComputedValue(type);
+        } else if (type === "tax") {
+          text = `$${fmt(taxAmt)}`;
+        } else if (type === "discount") {
+          text = `$${fmt(discountAmt)}`;
+        } else if (type === "amount_paid") {
+          text = `$${fmt(paidAmt)}`;
+        } else {
+          text = fieldValues[type] || "";
+        }
+        if (!text) continue;
+
+        const font      = await getFont(f.fontFamily);
+        const [r, g, b] = hexToRgb01(f.color ?? "#1a1a1a");
+        const drawX     = getDrawX(text, font, field.fontSize, field.x, field.width, f.alignment);
+        const drawY     = height - field.y - field.fontSize;
+
+        firstPage.drawText(text, { x: drawX, y: drawY, size: field.fontSize, font, color: rgb(r, g, b) });
+      }
+
+      // ── Draw line items with smart row height ────────────────────────────
+      //
+      // Strategy:
+      //   • The "description" template field defines the COLUMN position (x, width, fontSize).
+      //   • Its drawn height in the template tells us the maximum box height the designer
+      //     intended, but we ignore that for row-height purposes — instead we measure how
+      //     many lines the actual description text needs and derive the row height from that.
+      //   • qty / unit_price / line_total always stay on the FIRST line of each row (top).
+      //   • A ROW_GAP of 6pt separates consecutive rows.
+      //   • If the description field is absent we fall back to a fixed single-line row height.
+
+      const descField = activeTemplate.fields.find(f => f.type === "description") as any;
+      const qtyField  = activeTemplate.fields.find(f => f.type === "quantity")    as any;
+      const upField   = activeTemplate.fields.find(f => f.type === "unit_price")  as any;
+      const ltField   = activeTemplate.fields.find(f => f.type === "line_total")  as any;
+
+      if (descField || qtyField || upField || ltField) {
+        // Embed fonts for row fields once
+        const descFont = descField ? await getFont(descField.fontFamily) : null;
+        const qtyFont  = qtyField  ? await getFont(qtyField.fontFamily)  : null;
+        const upFont   = upField   ? await getFont(upField.fontFamily)   : null;
+        const ltFont   = ltField   ? await getFont(ltField.fontFamily)   : null;
+
+        // Start Y (pdf coords = bottom-up).
+        // We track the BASELINE of the first line of the current row in PDF coords.
+        // Template field .y is from the top of the page (Konva coords), so we convert:
+        //   pdfY = pageHeight - field.y - fontSize
+        const firstRowBaselineY = descField
+          ? height - descField.y - descField.fontSize
+          : qtyField
+          ? height - qtyField.y - qtyField.fontSize
+          : upField
+          ? height - upField.y - upField.fontSize
+          : ltField
+          ? height - ltField.y - ltField.fontSize
+          : height - 100;
+
+        // currentTopY is the PDF-Y of the very top of the current row's bounding box
+        // (i.e. firstLine baseline + fontSize above).  We'll step downward each iteration.
+        let currentTopY = firstRowBaselineY + (descField?.fontSize ?? qtyField?.fontSize ?? 12);
+
+        for (let rowIdx = 0; rowIdx < lineItems.length; rowIdx++) {
+          const li = lineItems[rowIdx];
+
+          // ── Compute how many lines the description takes for THIS row ──
+          let descLines: string[] = [""];
+          let descLineHeight = 0;
+          if (descField && descFont) {
+            descLines      = wrapText(li.description, descFont, descField.fontSize, descField.width - 8);
+            descLineHeight = descField.fontSize * LINE_HEIGHT_RATIO;
+          }
+
+          // actual height consumed by description text for this row
+          const descTextHeight = descLines.length * descLineHeight;
+
+          // row height = whichever is taller: the description text, or a single line
+          // (so short descriptions still give a normal row height)
+          const singleLineH = (descField?.fontSize ?? qtyField?.fontSize ?? qtyField?.fontSize ?? 12) * LINE_HEIGHT_RATIO;
+          const rowHeight   = Math.max(descTextHeight, singleLineH);
+
+          // first-line baseline for this row (PDF coords, descending)
+          const firstLineY = currentTopY - descField?.fontSize ?? singleLineH;
+
+          // ── Draw description lines ──────────────────────────────────────
+          if (descField && descFont) {
+            const [r, g, b] = hexToRgb01(descField.color ?? "#1a1a1a");
+            descLines.forEach((line, li_idx) => {
+              const lineY  = firstLineY - li_idx * descLineHeight;
+              const drawX  = getDrawX(line, descFont, descField.fontSize, descField.x, descField.width, descField.alignment);
+              firstPage.drawText(line, { x: drawX, y: lineY, size: descField.fontSize, font: descFont, color: rgb(r, g, b) });
+            });
+          }
+
+          // ── Draw qty (first line of row, right-aligned by field setting) ──
+          if (qtyField && qtyFont) {
+            const [r, g, b] = hexToRgb01(qtyField.color ?? "#1a1a1a");
+            const text  = String(li.quantity);
+            const drawX = getDrawX(text, qtyFont, qtyField.fontSize, qtyField.x, qtyField.width, qtyField.alignment);
+            firstPage.drawText(text, { x: drawX, y: firstLineY, size: qtyField.fontSize, font: qtyFont, color: rgb(r, g, b) });
+          }
+
+          // ── Draw unit price ────────────────────────────────────────────
+          if (upField && upFont) {
+            const [r, g, b] = hexToRgb01(upField.color ?? "#1a1a1a");
+            const text  = `$${fmt(li.unitPrice)}`;
+            const drawX = getDrawX(text, upFont, upField.fontSize, upField.x, upField.width, upField.alignment);
+            firstPage.drawText(text, { x: drawX, y: firstLineY, size: upField.fontSize, font: upFont, color: rgb(r, g, b) });
+          }
+
+          // ── Draw line total ────────────────────────────────────────────
+          if (ltField && ltFont) {
+            const [r, g, b] = hexToRgb01(ltField.color ?? "#1a1a1a");
+            const text  = `$${fmt(li.lineTotal)}`;
+            const drawX = getDrawX(text, ltFont, ltField.fontSize, ltField.x, ltField.width, ltField.alignment);
+            firstPage.drawText(text, { x: drawX, y: firstLineY, size: ltField.fontSize, font: ltFont, color: rgb(r, g, b) });
+          }
+
+          // ── Advance currentTopY downward for next row ──────────────────
+          // Move down by actual row height + gap (PDF Y goes down as we subtract)
+          currentTopY -= rowHeight + ROW_GAP;
+        }
+      }
+
+      // ── Save & upload ──────────────────────────────────────────────────────
       const pdfBytes = await pdfDoc.save();
-      const pdfFile = new File(
-        [pdfBytes],
-        `invoice-${Date.now()}.pdf`,
-        { type: "application/pdf" }
-      );
-
-      const fileUrl = await uploadToCloudinary(pdfFile);
+      const pdfFile  = new File([pdfBytes], `invoice-${Date.now()}.pdf`, { type: "application/pdf" });
+      const fileUrl  = await uploadToCloudinary(pdfFile);
       setGeneratedUrl(fileUrl);
 
-      // 5. Save record to Firestore
       await createInvoice.mutateAsync({
-        templateId,
-        customerId,
+        templateId, customerId,
         values: fieldValues,
-        lineItems: lineItems.map(li => ({ description: li.desc, quantity: li.qty, price: li.price, total: li.qty * li.price })),
-        totals: { subtotal, tax, discount, grandTotal },
+        lineItems: lineItems.map(li => ({
+          description: li.description,
+          quantity:    li.quantity,
+          price:       li.unitPrice,
+          total:       li.lineTotal,
+        })),
+        totals: { subtotal, tax: taxAmt, discount: discountAmt, amountPaid: paidAmt, grandTotal, remainingBalance },
         status: "Draft",
-        pdfURL: fileUrl
+        pdfURL: fileUrl,
       });
 
       setStep(4);
-      toast({ title: "Invoice Generated successfully!" });
-      
+      toast({ title: "Invoice generated successfully!" });
+
     } catch (err) {
       console.error(err);
-      toast({ title: "Generation failed", description: "Ensure template is a valid PDF or Image", variant: "destructive" });
+      toast({ title: "Generation failed", description: "Ensure template is a valid PDF or image.", variant: "destructive" });
     } finally {
       setIsGenerating(false);
     }
   };
 
-  if (loadingTpls || loadingCusts) return <div className="p-8 text-center text-slate-500">Loading...</div>;
+  if (loadingTpls || loadingCusts)
+    return <div className="p-8 text-center text-slate-500">Loading...</div>;
 
+  const step2Fields = activeTemplate?.fields.filter(f =>
+    headerFieldTypes.includes(f.type as FieldTypeValue)
+  ) ?? [];
+
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="max-w-3xl mx-auto space-y-8 pb-20">
+
+      {/* Page header */}
       <div className="flex items-center space-x-4">
         <Button variant="ghost" size="icon" onClick={() => setLocation("/invoices")} className="text-slate-500 rounded-full">
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div>
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Create Invoice</h1>
-          <p className="text-slate-500 mt-1">Step {step} of 3</p>
+          <p className="text-slate-500 mt-1">Step {step} of 4</p>
         </div>
       </div>
 
+      {/* Progress bar */}
+      <div className="flex space-x-2">
+        {[1,2,3,4].map(s => (
+          <div key={s} className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${s <= step ? "bg-primary" : "bg-slate-200"}`} />
+        ))}
+      </div>
+
       <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
+
+        {/* ── STEP 1 ─────────────────────────────────────────────────────── */}
         {step === 1 && (
           <div className="p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="space-y-4">
-              <Label className="text-base">1. Select Template</Label>
+              <Label className="text-base font-semibold">1. Select Template</Label>
               <div className="grid grid-cols-2 gap-4">
                 {templates.map(t => (
-                  <div 
-                    key={t.id} 
-                    onClick={() => setTemplateId(t.id)}
-                    className={`p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 flex items-center ${templateId === t.id ? 'border-primary bg-indigo-50 shadow-sm' : 'border-slate-200 hover:border-primary/50 bg-white'}`}
+                  <div key={t.id} onClick={() => setTemplateId(t.id)}
+                    className={`p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 flex items-center ${templateId === t.id ? "border-primary bg-indigo-50 shadow-sm" : "border-slate-200 hover:border-primary/50 bg-white"}`}
                   >
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center mr-4 ${templateId === t.id ? 'bg-primary text-white' : 'bg-slate-100 text-slate-400'}`}>
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center mr-4 ${templateId === t.id ? "bg-primary text-white" : "bg-slate-100 text-slate-400"}`}>
                       <FileText className="w-5 h-5" />
                     </div>
                     <div>
                       <h4 className="font-semibold text-slate-900">{t.name}</h4>
-                      <p className="text-xs text-slate-500 mt-1">{(t.fields || []).length} dynamic fields</p>
+                      <p className="text-xs text-slate-500 mt-1">{(t.fields || []).length} fields</p>
                     </div>
                   </div>
                 ))}
@@ -211,7 +386,7 @@ export default function InvoiceGenerator() {
             </div>
 
             <div className="space-y-4">
-              <Label className="text-base">2. Select Customer</Label>
+              <Label className="text-base font-semibold">2. Select Customer</Label>
               <Select value={customerId} onValueChange={handleCustomerSelect}>
                 <SelectTrigger className="h-12 rounded-xl border-slate-200 bg-slate-50">
                   <SelectValue placeholder="Choose a customer..." />
@@ -230,25 +405,37 @@ export default function InvoiceGenerator() {
           </div>
         )}
 
+        {/* ── STEP 2 ─────────────────────────────────────────────────────── */}
         {step === 2 && activeTemplate && (
           <div className="p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="bg-blue-50 text-blue-800 p-4 rounded-xl text-sm mb-6">
-              Fill in the dynamic fields defined in <strong>{activeTemplate.name}</strong>.
+            <div className="bg-blue-50 text-blue-800 p-4 rounded-xl text-sm">
+              Fill in the invoice details for <strong>{activeTemplate.name}</strong>. Line items are next.
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              {activeTemplate.fields.filter(f => !['subtotal', 'tax', 'total', 'grandtotal'].includes(f.name.toLowerCase())).map(field => (
-                <div key={field.id} className="space-y-2">
-                  <Label>{field.name}</Label>
-                  <Input 
-                    value={fieldValues[field.name] || ''} 
-                    onChange={e => setFieldValues({...fieldValues, [field.name]: e.target.value})}
-                    placeholder={`Enter ${field.name}`}
-                    className="bg-slate-50 border-slate-200 rounded-xl"
-                  />
-                </div>
-              ))}
-            </div>
+            {step2Fields.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {step2Fields.map(field => {
+                  const type   = field.type as FieldTypeValue;
+                  const isDate = type === "invoice_date" || type === "due_date";
+                  return (
+                    <div key={field.id} className="space-y-2">
+                      <Label>{FIELD_TYPES.find(ft => ft.value === type)?.label ?? field.name}</Label>
+                      <Input
+                        type={isDate ? "date" : "text"}
+                        value={fieldValues[type] || ""}
+                        onChange={e => setFieldValues({ ...fieldValues, [type]: e.target.value })}
+                        placeholder={`Enter ${FIELD_TYPES.find(ft => ft.value === type)?.label ?? field.name}`}
+                        className="bg-slate-50 border-slate-200 rounded-xl"
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-slate-500 text-sm text-center py-6">
+                No header fields defined. Proceed to add line items.
+              </p>
+            )}
 
             <div className="pt-6 border-t border-slate-100 flex justify-between">
               <Button variant="ghost" onClick={() => setStep(1)} className="rounded-xl">Back</Button>
@@ -257,59 +444,138 @@ export default function InvoiceGenerator() {
           </div>
         )}
 
+        {/* ── STEP 3 ─────────────────────────────────────────────────────── */}
         {step === 3 && (
           <div className="p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="space-y-4">
-              <div className="flex justify-between items-center mb-4">
-                <Label className="text-base">Line Items</Label>
+
+            {/* Line items table */}
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <Label className="text-base font-semibold">Line Items</Label>
                 <Button variant="outline" size="sm" onClick={addLineItem} className="rounded-xl h-8">
                   <Plus className="w-4 h-4 mr-1" /> Add Row
                 </Button>
               </div>
-              
-              <div className="space-y-3">
-                {lineItems.map((item, idx) => (
-                  <div key={idx} className="flex items-start gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
-                    <div className="flex-1">
-                      <Input placeholder="Description" value={item.desc} onChange={e => updateLineItem(idx, 'desc', e.target.value)} className="bg-white border-slate-200" />
-                    </div>
-                    <div className="w-24">
-                      <Input type="number" placeholder="Qty" value={item.qty || ''} onChange={e => updateLineItem(idx, 'qty', parseFloat(e.target.value)||0)} className="bg-white border-slate-200" />
-                    </div>
-                    <div className="w-32 relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">$</span>
-                      <Input type="number" placeholder="Price" value={item.price || ''} onChange={e => updateLineItem(idx, 'price', parseFloat(e.target.value)||0)} className="bg-white border-slate-200 pl-7" />
-                    </div>
-                    <Button variant="ghost" size="icon" onClick={() => removeLineItem(idx)} className="text-slate-400 hover:text-destructive shrink-0">
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
+
+              {/* Header row */}
+              <div className="grid grid-cols-[1fr_80px_120px_110px_40px] gap-2 px-3 pb-1 border-b border-slate-100">
+                {["Description","Qty","Unit Price","Line Total",""].map((h, i) => (
+                  <span key={i} className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{h}</span>
                 ))}
               </div>
+
+              {/* Data rows — description uses a textarea so long text is visible while editing */}
+              {lineItems.map((item, idx) => (
+                <div key={idx} className="grid grid-cols-[1fr_80px_120px_110px_40px] gap-2 items-start bg-slate-50 px-3 py-2.5 rounded-xl border border-slate-100">
+
+                  {/* Description — textarea grows with content */}
+                  <textarea
+                    placeholder="Item description..."
+                    value={item.description}
+                    rows={2}
+                    onChange={e => updateLineItem(idx, "description", e.target.value)}
+                    className="bg-white border border-slate-200 rounded-md text-sm px-3 py-2 resize-none w-full focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                    style={{ minHeight: "60px", lineHeight: "1.5" }}
+                  />
+
+                  {/* Qty */}
+                  <Input
+                    type="number" min={0} step={1} placeholder="1"
+                    value={item.quantity || ""}
+                    onChange={e => updateLineItem(idx, "quantity", parseInt(e.target.value) || 0)}
+                    className="bg-white border-slate-200 text-sm h-9 mt-1"
+                  />
+
+                  {/* Unit Price */}
+                  <div className="relative mt-1">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
+                    <Input
+                      placeholder="0.00"
+                      value={item.unitPrice ? formatCurrencyInput(String(item.unitPrice)) : ""}
+                      onChange={e => updateLineItem(idx, "unitPrice", parseFloat(e.target.value.replace(/,/g, "")) || 0)}
+                      className="bg-white border-slate-200 text-sm h-9 pl-7"
+                    />
+                  </div>
+
+                  {/* Line Total (auto) */}
+                  <div className="bg-white border border-slate-200 rounded-md h-9 flex items-center px-3 mt-1">
+                    <span className="text-sm font-medium text-slate-700">${fmt(item.lineTotal)}</span>
+                  </div>
+
+                  {/* Remove */}
+                  <Button variant="ghost" size="icon" onClick={() => removeLineItem(idx)}
+                    disabled={lineItems.length === 1} className="text-slate-400 hover:text-destructive h-9 w-9 mt-1">
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+
+              <p className="text-xs text-slate-400 text-right">
+                {lineItems.length} row{lineItems.length !== 1 ? "s" : ""} · PDF rows auto-size to description length
+              </p>
             </div>
 
-            <div className="flex justify-end pt-6 border-t border-slate-100">
-              <div className="w-64 space-y-3">
+            {/* Totals panel */}
+            <div className="border-t border-slate-100 pt-6 flex justify-end">
+              <div className="w-72 space-y-3">
+
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-500">Subtotal</span>
-                  <span className="font-medium text-slate-900">${subtotal.toFixed(2)}</span>
+                  <span className="font-semibold text-slate-800">${fmt(subtotal)}</span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-500 text-sm">Tax (%)</span>
-                  <Input type="number" className="w-20 h-8 text-right bg-slate-50 border-slate-200" value={taxRate} onChange={e => setTaxRate(parseFloat(e.target.value)||0)} />
+
+                {templateHasField("discount") && (
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-slate-500">Discount ($)</span>
+                    <div className="relative w-28">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
+                      <Input value={discountAmount} onChange={e => setDiscountAmount(formatCurrencyInput(e.target.value))} className="h-8 text-right text-sm bg-slate-50 border-slate-200 pl-7" />
+                    </div>
+                  </div>
+                )}
+
+                {templateHasField("tax") && (
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-slate-500">Tax (%)</span>
+                    <div className="relative w-28">
+                      <Input type="number" min={0} max={100} value={taxPercent} onChange={e => setTaxPercent(e.target.value)} className="h-8 text-right text-sm bg-slate-50 border-slate-200" placeholder="0" />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">%</span>
+                    </div>
+                  </div>
+                )}
+
+                {(templateHasField("tax") || templateHasField("discount")) && (
+                  <div className="flex justify-between text-sm text-slate-500 border-t border-slate-100 pt-2">
+                    {templateHasField("tax")      && <span>Tax: ${fmt(taxAmt)}</span>}
+                    {templateHasField("discount") && <span>Discount: −${fmt(discountAmt)}</span>}
+                  </div>
+                )}
+
+                <div className="flex justify-between text-base font-bold border-t border-slate-200 pt-3">
+                  <span className="text-slate-900">Grand Total</span>
+                  <span className="text-primary">${fmt(grandTotal)}</span>
                 </div>
-                <div className="flex justify-between items-center pb-3 border-b border-slate-100">
-                  <span className="text-slate-500 text-sm">Discount ($)</span>
-                  <Input type="number" className="w-24 h-8 text-right bg-slate-50 border-slate-200" value={discount} onChange={e => setDiscount(parseFloat(e.target.value)||0)} />
-                </div>
-                <div className="flex justify-between text-lg font-bold">
-                  <span className="text-slate-900">Total</span>
-                  <span className="text-primary">${grandTotal.toFixed(2)}</span>
-                </div>
+
+                {templateHasField("amount_paid") && (
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-slate-500">Amount Paid ($)</span>
+                    <div className="relative w-28">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
+                      <Input value={amountPaid} onChange={e => setAmountPaid(formatCurrencyInput(e.target.value))} className="h-8 text-right text-sm bg-slate-50 border-slate-200 pl-7" />
+                    </div>
+                  </div>
+                )}
+
+                {templateHasField("remaining_balance") && (
+                  <div className={`flex justify-between text-sm font-semibold rounded-lg px-3 py-2 ${remainingBalance <= 0 ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
+                    <span>Remaining Balance</span>
+                    <span>${fmt(Math.max(remainingBalance, 0))}</span>
+                  </div>
+                )}
               </div>
             </div>
 
-            <div className="pt-6 flex justify-between">
+            <div className="pt-4 flex justify-between">
               <Button variant="ghost" onClick={() => setStep(2)} className="rounded-xl">Back</Button>
               <Button onClick={generatePDF} disabled={isGenerating} className="rounded-xl px-8 shadow-lg shadow-primary/25 bg-primary hover:bg-primary/90 text-white font-semibold">
                 {isGenerating ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <CheckCircle2 className="w-5 h-5 mr-2" />}
@@ -319,22 +585,19 @@ export default function InvoiceGenerator() {
           </div>
         )}
 
+        {/* ── STEP 4 ─────────────────────────────────────────────────────── */}
         {step === 4 && (
           <div className="p-16 text-center animate-in zoom-in duration-500 flex flex-col items-center">
             <div className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mb-6">
               <CheckCircle2 className="w-12 h-12 text-emerald-600" />
             </div>
             <h2 className="text-3xl font-bold text-slate-900 mb-2">Invoice Generated!</h2>
-            <p className="text-slate-500 max-w-md mb-8">Your invoice has been successfully created, saved, and securely uploaded to the cloud.</p>
-            
+            <p className="text-slate-500 max-w-md mb-8">
+              Your invoice has been successfully created, saved, and uploaded to the cloud.
+            </p>
             <div className="flex space-x-4">
               <Button asChild variant="outline" className="rounded-xl h-12 px-6 border-slate-200 shadow-sm">
-                <a
-                  href={generatedUrl}
-                  download={`invoice-${customerId}-${Date.now()}.pdf`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
+                <a href={generatedUrl} download={`invoice-${Date.now()}.pdf`} target="_blank" rel="noopener noreferrer">
                   <Download className="w-5 h-5 mr-2" /> Download PDF
                 </a>
               </Button>
@@ -344,6 +607,7 @@ export default function InvoiceGenerator() {
             </div>
           </div>
         )}
+
       </div>
     </div>
   );
