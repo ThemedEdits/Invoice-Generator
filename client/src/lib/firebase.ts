@@ -3,12 +3,12 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBIYyC0v2KW-NGBjYmtRP1ZWkWSeoO4h8I",
-  authDomain: "invoice-generator-12.firebaseapp.com",
-  projectId: "invoice-generator-12",
-  storageBucket: "invoice-generator-12.firebasestorage.app",
-  messagingSenderId: "465658363744",
-  appId: "1:465658363744:web:8cc41192d9b4054ad12805"
+  apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain:        import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId:         import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket:     import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId:             import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
 const app = initializeApp(firebaseConfig);
