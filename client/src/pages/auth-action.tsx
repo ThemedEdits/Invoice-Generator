@@ -141,7 +141,7 @@ export default function AuthAction() {
                   ))}
                 </div>
 
-                <Link href="/dashboard">
+                <Link href="https://invote.up.railway/dashboard">
                   <a className="w-full flex items-center justify-center gap-2 bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold py-3 rounded-xl transition-all duration-200 shadow-lg shadow-amber-400/20 hover:-translate-y-px active:translate-y-0 text-sm">
                     Go to Dashboard <ArrowRight className="w-4 h-4" />
                   </a>
