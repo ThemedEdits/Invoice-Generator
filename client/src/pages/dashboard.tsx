@@ -389,12 +389,12 @@ function EmptyState({
 }) {
   return (
     <div className="flex flex-col items-center justify-center py-14 px-6 text-center">
-      <div className="w-14 h-14 rounded-2xl bg-white/[0.04] border border-white/[0.19] flex items-center justify-center mb-4">
-        <Icon className="w-7 h-7 text-slate-300" />
+      <div className="w-14 h-14 rounded-2xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center mb-4">
+        <Icon className="w-7 h-7 text-amber-400" />
       </div>
-      <p className="font-semibold text-slate-300">{title}</p>
-      <p className="text-sm text-slate-400 mt-1 mb-5">{desc}</p>
-      <Button asChild size="sm" className="rounded-xl shadow-sm shadow-primary/20">
+      <p className="font-semibold text-white">{title}</p>
+      <p className="text-sm text-slate-500 mt-1 mb-5">{desc}</p>
+      <Button asChild size="sm" className="rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold shadow-sm shadow-amber-400/20 border-0">
         <Link href={href}><Plus className="w-3.5 h-3.5 mr-1.5" />{cta}</Link>
       </Button>
     </div>

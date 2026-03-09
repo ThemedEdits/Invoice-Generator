@@ -29,19 +29,19 @@ const fmt = (n: number) =>
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function Invoices() {
   const { data: invoices = [], isLoading: loadingInvoices } = useInvoices();
-  const { data: customers = [] }  = useCustomers();
+  const { data: customers = [] } = useCustomers();
   const updateStatus = useUpdateInvoiceStatus();
   const deleteInvoice = useDeleteInvoice();
 
   // ── Filter state ────────────────────────────────────────────────────────────
-  const [searchId,      setSearchId]      = useState("");
-  const [searchCustomer,setSearchCustomer]= useState("");
-  const [dateFrom,      setDateFrom]      = useState("");
-  const [dateTo,        setDateTo]        = useState("");
-  const [amountMin,     setAmountMin]     = useState("");
-  const [amountMax,     setAmountMax]     = useState("");
-  const [statusFilter,  setStatusFilter]  = useState("all");
-  const [filtersOpen,   setFiltersOpen]   = useState(false);
+  const [searchId, setSearchId] = useState("");
+  const [searchCustomer, setSearchCustomer] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [amountMin, setAmountMin] = useState("");
+  const [amountMax, setAmountMax] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   // ── Delete confirm state ────────────────────────────────────────────────────
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -62,9 +62,9 @@ export default function Invoices() {
   const filtered = useMemo(() => {
     return invoices.filter(inv => {
       const customer = customers.find(c => c.id === inv.customerId);
-      const invId    = `INV-${inv.id.substring(0, 6).toUpperCase()}`;
-      const amount   = inv.totals?.grandTotal ?? 0;
-      const date     = toDate(inv.createdAt);
+      const invId = `INV-${inv.id.substring(0, 6).toUpperCase()}`;
+      const amount = inv.totals?.grandTotal ?? 0;
+      const date = toDate(inv.createdAt);
 
       // Invoice ID
       if (searchId && !invId.toLowerCase().includes(searchId.toLowerCase())) return false;
@@ -74,7 +74,7 @@ export default function Invoices() {
 
       // Date range
       if (dateFrom && date && date < new Date(dateFrom)) return false;
-      if (dateTo   && date && date > new Date(dateTo + "T23:59:59")) return false;
+      if (dateTo && date && date > new Date(dateTo + "T23:59:59")) return false;
 
       // Amount range
       if (amountMin && amount < parseFloat(amountMin)) return false;
@@ -250,38 +250,38 @@ export default function Invoices() {
         )}
       </div>
 
-  {/* ── Invoice table ─────────────────────────────────────────────────────── */}
-  <div className="bg-white/[0.03] rounded-2xl shadow-sm border border-white/[0.19] overflow-hidden">
-    {loadingInvoices ? (
-      <div className="divide-y divide-slate-800">
-        {[1, 2, 3, 4, 5].map(i => (
-          <div key={i} className="flex items-center gap-4 px-6 py-4 animate-pulse">
-            {/* Invoice ID */}
-            <div className="w-24 h-4 bg-white/[0.06]rounded-lg" />
-            {/* Customer */}
-            <div className="w-32 h-4 bg-white/[0.06]rounded-lg" />
-            {/* Date */}
-            <div className="w-20 h-4 bg-white/[0.06]rounded-lg" />
-            {/* Amount — pushed right */}
-            <div className="ml-auto w-16 h-4 bg-white/[0.06]rounded-lg" />
-            {/* Status badge */}
-            <div className="w-16 h-6 bg-white/[0.06]rounded-full" />
-            {/* Actions button */}
-            <div className="w-16 h-8 bg-white/[0.06]rounded-lg" />
+      {/* ── Invoice table ─────────────────────────────────────────────────────── */}
+      <div className="bg-white/[0.03] rounded-2xl shadow-sm border border-white/[0.19] overflow-hidden">
+        {loadingInvoices ? (
+          <div className="divide-y divide-slate-800">
+            {[1, 2, 3, 4, 5].map(i => (
+              <div key={i} className="flex items-center gap-4 px-6 py-4 animate-pulse">
+                {/* Invoice ID */}
+                <div className="w-24 h-4 bg-white/[0.06]rounded-lg" />
+                {/* Customer */}
+                <div className="w-32 h-4 bg-white/[0.06]rounded-lg" />
+                {/* Date */}
+                <div className="w-20 h-4 bg-white/[0.06]rounded-lg" />
+                {/* Amount — pushed right */}
+                <div className="ml-auto w-16 h-4 bg-white/[0.06]rounded-lg" />
+                {/* Status badge */}
+                <div className="w-16 h-6 bg-white/[0.06]rounded-full" />
+                {/* Actions button */}
+                <div className="w-16 h-8 bg-white/[0.06]rounded-lg" />
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
-    ) : invoices.length === 0 ? (
+        ) : invoices.length === 0 ? (
           <div className="p-16 text-center flex flex-col items-center">
-            <div className="w-20 h-20 bg-white/[0.04] rounded-full flex items-center justify-center mb-6">
-              <FileText className="w-10 h-10 text-slate-400" />
-            </div>
-            <h3 className="text-xl font-bold text-white mb-2">No invoices yet</h3>
-            <p className="text-slate-500 max-w-md mb-8">Select a template and customer to generate your first professional invoice.</p>
-            <Button asChild className="rounded-xl shadow-lg shadow-primary/20">
-              <Link href="/invoices/new">Generate Invoice</Link>
-            </Button>
-          </div>
+  <div className="w-20 h-20 bg-amber-400/10 border border-amber-400/20 rounded-full flex items-center justify-center mb-6">
+    <FileText className="w-10 h-10 text-amber-400" />
+  </div>
+  <h3 className="text-xl font-bold text-white mb-2">No invoices yet</h3>
+  <p className="text-slate-500 max-w-md mb-8">Select a template and customer to generate your first professional invoice.</p>
+  <Button asChild className="rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold shadow-lg shadow-amber-400/20 border-0">
+    <Link href="/invoices/new">Generate Invoice</Link>
+  </Button>
+</div>
         ) : filtered.length === 0 ? (
           <div className="p-12 text-center flex flex-col items-center">
             <Search className="w-10 h-10 text-slate-300 mb-4" />
@@ -305,7 +305,7 @@ export default function Invoices() {
               <tbody className="divide-y divide-slate-100">
                 {filtered.map(invoice => {
                   const customer = customers.find(c => c.id === invoice.customerId);
-                  const date     = toDate(invoice.createdAt);
+                  const date = toDate(invoice.createdAt);
                   return (
                     <tr key={invoice.id} className="hover:bg-white/[0.04]/80 transition-colors group">
                       <td className="px-6 py-4 font-medium text-white">
@@ -362,7 +362,7 @@ export default function Invoices() {
                               <DropdownMenuItem className="cursor-pointer font-medium text-slate-400 text-xs uppercase pt-2 pointer-events-none">
                                 Mark as
                               </DropdownMenuItem>
-                              {(["Sent","Paid","Overdue"] as const).map(s => (
+                              {(["Sent", "Paid", "Overdue"] as const).map(s => (
                                 <DropdownMenuItem
                                   key={s} className="cursor-pointer"
                                   onClick={() => updateStatus.mutate({ id: invoice.id, status: s })}

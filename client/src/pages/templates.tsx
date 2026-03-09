@@ -122,14 +122,14 @@ export default function Templates() {
 
         /* ── Empty state ─────────────────────────────────────────────────────── */
         <div className="bg-white/[0.03] rounded-3xl border border-dashed border-white/[0.08] p-16 text-center flex flex-col items-center">
-          <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mb-6">
-            <FileText className="w-10 h-10 text-primary" />
+          <div className="w-20 h-20 bg-amber-400/10 border border-amber-400/20 rounded-full flex items-center justify-center mb-6">
+            <FileText className="w-10 h-10 text-amber-400" />
           </div>
           <h3 className="text-xl font-bold text-white mb-2">No templates yet</h3>
           <p className="text-slate-500 max-w-md mb-8">
             Upload a PDF or image of your invoice layout to start mapping dynamic fields.
           </p>
-          <Button asChild className="rounded-xl px-8 h-12 shadow-lg shadow-primary/20">
+          <Button asChild className="rounded-xl px-8 h-12 bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold shadow-lg shadow-amber-400/20 border-0">
             <Link href="/templates/new">Create First Template</Link>
           </Button>
         </div>

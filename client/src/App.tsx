@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "./hooks/use-auth";
 import { AppLayout } from "./components/layout";
+import AuthAction from "@/pages/auth-action";
 
 // Pages
 import NotFound        from "@/pages/not-found";
@@ -30,12 +31,13 @@ function ProtectedRoute({ component: Component, ...rest }: any) {
 function Router() {
   return (
     <Switch>
-      {/* ── Public routes — NO sidebar/layout ── */}
-      <Route path="/"         component={Landing}  />
-      <Route path="/login"    component={Login}    />
-      <Route path="/register" component={Register} />
+      {/* ── Public routes ── */}
+      <Route path="/"            component={Landing}    />
+      <Route path="/login"       component={Login}      />
+      <Route path="/register"    component={Register}   />
+      <Route path="/auth/action" component={AuthAction} />  {/* ← keep here */}
 
-      {/* ── Protected routes — wrapped in AppLayout ── */}
+      {/* ── Protected routes ── */}
       <Route>
         {() => (
           <AppLayout>
@@ -61,6 +63,7 @@ function Router() {
               <Route path="/invoices/new">
                 {() => <ProtectedRoute component={InvoiceGenerator} />}
               </Route>
+              <Route path="/auth/action" component={AuthAction} /> {/* ← add here too */}
               <Route component={NotFound} />
             </Switch>
           </AppLayout>

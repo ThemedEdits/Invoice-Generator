@@ -209,23 +209,23 @@ export default function Customers() {
         ) : filtered.length === 0 ? (
           /* ── Empty state ──────────────────────────────────────────────────── */
           <div className="p-16 text-center flex flex-col items-center">
-            <div className="w-16 h-16 bg-white/[0.04] rounded-full flex items-center justify-center mb-4 border border-white/[0.19]">
-              <Users className="w-7 h-7 text-slate-300" />
-            </div>
-            <h3 className="text-base font-semibold text-slate-300">
-              {search ? "No customers match your search" : "No customers yet"}
-            </h3>
-            <p className="text-slate-400 text-sm mt-1 max-w-xs">
-              {search
-                ? "Try a different name, email, or phone number."
-                : "Add your first customer to start generating invoices quickly."}
-            </p>
-            {search && (
-              <Button variant="outline" size="sm" onClick={() => setSearch("")} className="mt-4 rounded-xl">
-                Clear Search
-              </Button>
-            )}
-          </div>
+  <div className="w-16 h-16 bg-amber-400/10 border border-amber-400/20 rounded-full flex items-center justify-center mb-4">
+    <Users className="w-7 h-7 text-amber-400" />
+  </div>
+  <h3 className="text-base font-semibold text-white">
+    {search ? "No customers match your search" : "No customers yet"}
+  </h3>
+  <p className="text-slate-500 text-sm mt-1 max-w-xs">
+    {search
+      ? "Try a different name, email, or phone number."
+      : "Add your first customer to start generating invoices quickly."}
+  </p>
+  {search && (
+    <Button variant="outline" size="sm" onClick={() => setSearch("")} className="mt-4 rounded-xl border-white/10 text-slate-400 hover:bg-white/5 hover:text-white">
+      Clear Search
+    </Button>
+  )}
+</div>
 
         ) : (
           <>
