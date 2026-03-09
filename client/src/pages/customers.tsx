@@ -31,9 +31,9 @@ function StatsSkeleton() {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
       {[1, 2, 3].map(i => (
-        <div key={i} className="bg-white rounded-2xl border border-slate-100 shadow-sm px-5 py-4 animate-pulse">
-          <div className="h-7 bg-slate-100 rounded-lg w-10 mb-2" />
-          <div className="h-3 bg-slate-100 rounded-lg w-28" />
+        <div key={i} className="bg-white/[0.03] rounded-2xl border border-white/[0.19] shadow-sm px-5 py-4 animate-pulse">
+          <div className="h-7 bg-white/[0.06]rounded-lg w-10 mb-2" />
+          <div className="h-3 bg-white/[0.06]rounded-lg w-28" />
         </div>
       ))}
     </div>
@@ -45,23 +45,23 @@ function SkeletonRow() {
     <tr className="animate-pulse">
       <td className="px-6 py-4">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-slate-100 flex-shrink-0" />
-          <div className="h-3.5 bg-slate-100 rounded-lg w-28" />
+          <div className="w-9 h-9 rounded-full bg-white/[0.06]flex-shrink-0" />
+          <div className="h-3.5 bg-white/[0.06]rounded-lg w-28" />
         </div>
       </td>
       <td className="px-6 py-4">
         <div className="space-y-2">
-          <div className="h-3 bg-slate-100 rounded-lg w-36" />
-          <div className="h-3 bg-slate-100 rounded-lg w-24" />
+          <div className="h-3 bg-white/[0.06]rounded-lg w-36" />
+          <div className="h-3 bg-white/[0.06]rounded-lg w-24" />
         </div>
       </td>
       <td className="px-6 py-4">
-        <div className="h-3 bg-slate-100 rounded-lg w-40" />
+        <div className="h-3 bg-white/[0.06]rounded-lg w-40" />
       </td>
       <td className="px-6 py-4">
         <div className="flex justify-end gap-2">
-          <div className="w-8 h-8 bg-slate-100 rounded-lg" />
-          <div className="w-8 h-8 bg-slate-100 rounded-lg" />
+          <div className="w-8 h-8 bg-white/[0.06]rounded-lg" />
+          <div className="w-8 h-8 bg-white/[0.06]rounded-lg" />
         </div>
       </td>
     </tr>
@@ -71,15 +71,15 @@ function SkeletonRow() {
 function SkeletonCard() {
   return (
     <div className="px-5 py-4 flex items-start gap-4 animate-pulse">
-      <div className="w-11 h-11 rounded-full bg-slate-100 flex-shrink-0" />
+      <div className="w-11 h-11 rounded-full bg-white/[0.06]flex-shrink-0" />
       <div className="flex-1 space-y-2">
-        <div className="h-3.5 bg-slate-100 rounded-lg w-1/3" />
-        <div className="h-3 bg-slate-100 rounded-lg w-1/2" />
-        <div className="h-3 bg-slate-100 rounded-lg w-1/4" />
+        <div className="h-3.5 bg-white/[0.06]rounded-lg w-1/3" />
+        <div className="h-3 bg-white/[0.06]rounded-lg w-1/2" />
+        <div className="h-3 bg-white/[0.06]rounded-lg w-1/4" />
       </div>
       <div className="flex gap-1 flex-shrink-0">
-        <div className="w-8 h-8 bg-slate-100 rounded-lg" />
-        <div className="w-8 h-8 bg-slate-100 rounded-lg" />
+        <div className="w-8 h-8 bg-white/[0.06]rounded-lg" />
+        <div className="w-8 h-8 bg-white/[0.06]rounded-lg" />
       </div>
     </div>
   );
@@ -108,7 +108,7 @@ export default function Customers() {
       {/* ── Page header ──────────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Customers</h1>
+          <h1 className="text-3xl font-bold text-white tracking-tight">Customers</h1>
           <p className="text-slate-500 mt-1">Manage your client details for faster invoicing.</p>
         </div>
         <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
@@ -118,9 +118,9 @@ export default function Customers() {
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[460px] rounded-2xl p-0 overflow-hidden">
-            <div className="bg-gradient-to-br from-primary/5 to-indigo-50 px-6 pt-6 pb-4 border-b border-slate-100">
+            <div className="bg-gradient-to-br from-primary/5 to-indigo-50 px-6 pt-6 pb-4 border-b border-white/[0.19]">
               <DialogHeader>
-                <DialogTitle className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                <DialogTitle className="text-xl font-bold text-white flex items-center gap-2">
                   <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
                     <UserCircle2 className="w-4 h-4 text-primary" />
                   </div>
@@ -146,7 +146,7 @@ export default function Customers() {
             { label: "With Phone",      value: customers.filter(c => c.phone).length,   color: "text-emerald-600" },
             { label: "With Address",    value: customers.filter(c => c.address).length, color: "text-sky-600"     },
           ].map(stat => (
-            <div key={stat.label} className="bg-white rounded-2xl border border-slate-100 shadow-sm px-5 py-4">
+            <div key={stat.label} className="bg-white/[0.03] rounded-2xl border border-white/[0.19] shadow-sm px-5 py-4">
               <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
               <p className="text-xs text-slate-500 mt-0.5 font-medium">{stat.label}</p>
             </div>
@@ -155,22 +155,22 @@ export default function Customers() {
       ) : null}
 
       {/* ── Table card ───────────────────────────────────────────────────────── */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+      <div className="bg-white/[0.03] rounded-2xl shadow-sm border border-white/[0.19] overflow-hidden">
 
         {/* Search bar */}
-        <div className="px-5 py-3.5 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
+        <div className="px-5 py-3.5 border-b border-white/[0.19] bg-white/[0.04]/50 flex items-center gap-3">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <Input
               placeholder="Search by name, email or phone..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="pl-9 h-9 bg-white border-slate-200 rounded-xl text-sm"
+              className="pl-9 h-9 bg-white/[0.03] border-white/[0.08] rounded-xl text-sm"
             />
             {search && (
               <button
                 onClick={() => setSearch("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-400"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -188,7 +188,7 @@ export default function Customers() {
           <>
             <div className="hidden md:block">
               <table className="w-full text-sm text-left">
-                <thead className="bg-slate-50/50 text-slate-500 font-medium border-b border-slate-100">
+                <thead className="bg-white/[0.04]/50 text-slate-500 font-medium border-b border-white/[0.19]">
                   <tr>
                     <th className="px-6 py-3.5">Customer</th>
                     <th className="px-6 py-3.5">Contact</th>
@@ -196,12 +196,12 @@ export default function Customers() {
                     <th className="px-6 py-3.5 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-800">
                   {[1, 2, 3, 4, 5].map(i => <SkeletonRow key={i} />)}
                 </tbody>
               </table>
             </div>
-            <div className="md:hidden divide-y divide-slate-100">
+            <div className="md:hidden divide-y divide-slate-800">
               {[1, 2, 3, 4].map(i => <SkeletonCard key={i} />)}
             </div>
           </>
@@ -209,10 +209,10 @@ export default function Customers() {
         ) : filtered.length === 0 ? (
           /* ── Empty state ──────────────────────────────────────────────────── */
           <div className="p-16 text-center flex flex-col items-center">
-            <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 border border-slate-100">
+            <div className="w-16 h-16 bg-white/[0.04] rounded-full flex items-center justify-center mb-4 border border-white/[0.19]">
               <Users className="w-7 h-7 text-slate-300" />
             </div>
-            <h3 className="text-base font-semibold text-slate-700">
+            <h3 className="text-base font-semibold text-slate-300">
               {search ? "No customers match your search" : "No customers yet"}
             </h3>
             <p className="text-slate-400 text-sm mt-1 max-w-xs">
@@ -232,7 +232,7 @@ export default function Customers() {
             {/* Desktop table */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm text-left">
-                <thead className="bg-slate-50/50 text-slate-500 font-medium border-b border-slate-100">
+                <thead className="bg-white/[0.04]/50 text-slate-500 font-medium border-b border-white/[0.19]">
                   <tr>
                     <th className="px-6 py-3.5">Customer</th>
                     <th className="px-6 py-3.5">Contact</th>
@@ -281,9 +281,9 @@ export default function Customers() {
             </AlertDialogTitle>
             <AlertDialogDescription className="text-slate-500 leading-relaxed">
               You are about to permanently delete{" "}
-              <span className="font-semibold text-slate-700">{deleteTarget?.name}</span>
+              <span className="font-semibold text-slate-300">{deleteTarget?.name}</span>
               {deleteTarget?.email && (
-                <> (<span className="text-slate-600">{deleteTarget.email}</span>)</>
+                <> (<span className="text-slate-400">{deleteTarget.email}</span>)</>
               )}
               . This will not delete existing invoices, but you won't be able to
               select this customer for new ones.
@@ -320,18 +320,18 @@ function CustomerRow({
   const avatarColor = getAvatarColor(customer.name);
 
   return (
-    <tr className="hover:bg-slate-50/70 transition-colors group">
+    <tr className="hover:bg-white/[0.04]/70 transition-colors group">
       <td className="px-6 py-4">
         <div className="flex items-center gap-3">
           <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 ${avatarColor}`}>
             {customer.name.charAt(0).toUpperCase()}
           </div>
-          <span className="font-semibold text-slate-900">{customer.name}</span>
+          <span className="font-semibold text-white">{customer.name}</span>
         </div>
       </td>
       <td className="px-6 py-4">
         <div className="space-y-0.5">
-          <div className="flex items-center gap-1.5 text-slate-600 text-sm">
+          <div className="flex items-center gap-1.5 text-slate-400 text-sm">
             <Mail className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
             {customer.email}
           </div>
@@ -366,9 +366,9 @@ function CustomerRow({
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[460px] rounded-2xl p-0 overflow-hidden">
-              <div className="bg-gradient-to-br from-primary/5 to-indigo-50 px-6 pt-6 pb-4 border-b border-slate-100">
+              <div className="bg-gradient-to-br from-primary/5 to-indigo-50 px-6 pt-6 pb-4 border-b border-white/[0.19]">
                 <DialogHeader>
-                  <DialogTitle className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                  <DialogTitle className="text-xl font-bold text-white flex items-center gap-2">
                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm ${getAvatarColor(customer.name)}`}>
                       {customer.name.charAt(0).toUpperCase()}
                     </div>
@@ -408,12 +408,12 @@ function CustomerCard({
   const avatarColor = getAvatarColor(customer.name);
 
   return (
-    <div className="px-5 py-4 flex items-start gap-4 hover:bg-slate-50/70 transition-colors">
+    <div className="px-5 py-4 flex items-start gap-4 hover:bg-white/[0.04]/70 transition-colors">
       <div className={`w-11 h-11 rounded-full flex items-center justify-center font-bold text-base flex-shrink-0 ${avatarColor}`}>
         {customer.name.charAt(0).toUpperCase()}
       </div>
       <div className="flex-1 min-w-0 space-y-1">
-        <p className="font-semibold text-slate-900 truncate">{customer.name}</p>
+        <p className="font-semibold text-white truncate">{customer.name}</p>
         <div className="flex items-center gap-1.5 text-slate-500 text-xs">
           <Mail className="w-3 h-3 flex-shrink-0" />
           <span className="truncate">{customer.email}</span>
@@ -439,9 +439,9 @@ function CustomerCard({
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[460px] rounded-2xl p-0 overflow-hidden">
-            <div className="bg-gradient-to-br from-primary/5 to-indigo-50 px-6 pt-6 pb-4 border-b border-slate-100">
+            <div className="bg-gradient-to-br from-primary/5 to-indigo-50 px-6 pt-6 pb-4 border-b border-white/[0.19]">
               <DialogHeader>
-                <DialogTitle className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                <DialogTitle className="text-xl font-bold text-white flex items-center gap-2">
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm ${avatarColor}`}>
                     {customer.name.charAt(0).toUpperCase()}
                   </div>
@@ -502,7 +502,7 @@ function CustomerForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-1.5">
-        <Label className="text-sm font-semibold text-slate-700">
+        <Label className="text-sm font-semibold text-slate-300">
           Full Name <span className="text-destructive">*</span>
         </Label>
         <div className="relative">
@@ -512,13 +512,13 @@ function CustomerForm({
             value={formData.name}
             onChange={set("name")}
             placeholder="e.g. John Smith"
-            className="pl-9 bg-slate-50 border-slate-200 rounded-xl"
+            className="pl-9 bg-white/[0.04] border-white/[0.08] rounded-xl"
           />
         </div>
       </div>
 
       <div className="space-y-1.5">
-        <Label className="text-sm font-semibold text-slate-700">
+        <Label className="text-sm font-semibold text-slate-300">
           Email Address <span className="text-destructive">*</span>
         </Label>
         <div className="relative">
@@ -529,13 +529,13 @@ function CustomerForm({
             value={formData.email}
             onChange={set("email")}
             placeholder="john@company.com"
-            className="pl-9 bg-slate-50 border-slate-200 rounded-xl"
+            className="pl-9 bg-white/[0.04] border-white/[0.08] rounded-xl"
           />
         </div>
       </div>
 
       <div className="space-y-1.5">
-        <Label className="text-sm font-semibold text-slate-700 flex items-center justify-between">
+        <Label className="text-sm font-semibold text-slate-300 flex items-center justify-between">
           Phone Number
           <span className="text-xs text-slate-400 font-normal">Optional</span>
         </Label>
@@ -545,13 +545,13 @@ function CustomerForm({
             value={formData.phone}
             onChange={set("phone")}
             placeholder="+1 (555) 000-0000"
-            className="pl-9 bg-slate-50 border-slate-200 rounded-xl"
+            className="pl-9 bg-white/[0.04] border-white/[0.08] rounded-xl"
           />
         </div>
       </div>
 
       <div className="space-y-1.5">
-        <Label className="text-sm font-semibold text-slate-700 flex items-center justify-between">
+        <Label className="text-sm font-semibold text-slate-300 flex items-center justify-between">
           Billing Address
           <span className="text-xs text-slate-400 font-normal">Optional</span>
         </Label>
@@ -562,7 +562,7 @@ function CustomerForm({
             onChange={set("address")}
             placeholder="123 Main St, City, Country"
             rows={2}
-            className="pl-9 bg-slate-50 border-slate-200 rounded-xl resize-none text-sm"
+            className="pl-9 bg-white/[0.04] border-white/[0.08] rounded-xl resize-none text-sm"
           />
         </div>
       </div>

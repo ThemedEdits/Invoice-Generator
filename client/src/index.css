@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,87 +6,214 @@
 
 @layer base {
   :root {
-    --background: 210 40% 98%;
-    --foreground: 222 47% 11%;
+    /* ── Base surfaces ───────────────────────────────────────────────── */
+    --background:        220 13% 9%;     /* #0d0f14 — deep charcoal canvas  */
+    --foreground:        40  20% 92%;    /* warm ivory text                 */
 
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card:              220 13% 12%;   /* slightly lighter than bg        */
+    --card-foreground:   40  20% 92%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover:           220 13% 14%;
+    --popover-foreground:40  20% 92%;
 
-    --primary: 238 81% 65%; /* Indigo 600 */
-    --primary-foreground: 210 40% 98%;
+    /* ── Primary — amber gold ────────────────────────────────────────── */
+    --primary:           43  96% 56%;   /* #f59e0b amber-400               */
+    --primary-foreground:220 13% 9%;    /* dark text on amber              */
 
-    --secondary: 214 32% 91%;
-    --secondary-foreground: 222 47% 11%;
+    /* ── Secondary — muted slate ─────────────────────────────────────── */
+    --secondary:         220 13% 18%;
+    --secondary-foreground: 40 10% 70%;
 
-    --muted: 214 32% 91%;
-    --muted-foreground: 215 16% 47%;
+    /* ── Muted ───────────────────────────────────────────────────────── */
+    --muted:             220 13% 16%;
+    --muted-foreground:  220  8% 45%;
 
-    --accent: 238 81% 95%; /* Indigo 50 */
-    --accent-foreground: 238 81% 65%;
+    /* ── Accent — amber tint ─────────────────────────────────────────── */
+    --accent:            43  96% 56% / 0.12;
+    --accent-foreground: 43  96% 56%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
+    /* ── Destructive ─────────────────────────────────────────────────── */
+    --destructive:       0   84% 60%;
+    --destructive-foreground: 40 20% 92%;
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 238 81% 65%;
+    /* ── Borders & inputs ────────────────────────────────────────────── */
+    --border:            220 13% 18%;   /* white/[0.08] equivalent         */
+    --input:             220 13% 16%;
+    --ring:              43  96% 56%;   /* amber focus ring                */
 
+    /* ── Radius ──────────────────────────────────────────────────────── */
     --radius: 0.75rem;
 
-    --font-sans: 'Plus Jakarta Sans', sans-serif;
-    --font-mono: 'JetBrains Mono', monospace;
+    /* ── Fonts ───────────────────────────────────────────────────────── */
+    --font-sans:    'DM Sans',       sans-serif;
+    --font-display: 'Cinzel',        serif;
+    --font-mono:    'JetBrains Mono',monospace;
   }
 
-  .dark {
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
-
-    --card: 222 47% 11%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222 47% 11%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 238 81% 65%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 238 81% 65%;
-  }
+  /* No separate .dark block needed — the app IS dark by default.
+     If you ever add a light-mode toggle, define overrides here. */
 }
 
+/* ─── Base resets ─────────────────────────────────────────────────────────── */
 @layer base {
-* {
-  border-color: hsl(var(--border));
-}
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  html {
+    color-scheme: dark;
+  }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
     font-family: var(--font-sans);
   }
+
   h1, h2, h3, h4, h5, h6 {
     @apply font-bold tracking-tight;
+    font-family: var(--font-display);
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
   }
 }
 
-/* Custom Utilities for Editor */
+/* ─── Autocomplete / autofill override ───────────────────────────────────────── */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 999px rgba(255, 255, 255, 0.04) inset !important;
+  box-shadow: 0 0 0 999px rgba(255, 255, 255, 0.005) inset !important;
+  -webkit-text-fill-color: #fff !important;
+  caret-color: #fff;
+  border-radius: 0.75rem !important;
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+/* Suppress box-shadow pulse on all Radix triggers */
+[role="combobox"]:focus {
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* ─── Grid dot background (reusable utility) ──────────────────────────────── */
+@layer utilities {
+  .bg-grid {
+    background-image:
+      linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  .bg-dot {
+    background-image: radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+
+  /* Glass card */
+  .glass {
+    background: rgba(255,255,255,0.03);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  /* Amber glow shadow */
+  .glow-amber {
+    box-shadow: 0 0 40px rgba(245,158,11,0.15);
+  }
+
+  /* Text gradient (amber) */
+  .text-gradient-amber {
+    background: linear-gradient(135deg, #fff 0%, #fbbf24 50%, #fff 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* Shimmer text */
+  .text-shimmer {
+    background: linear-gradient(90deg, #f59e0b 0%, #fde68a 40%, #f59e0b 80%);
+    background-size: 200% auto;
+    animation: shimmer 3s linear infinite;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}
+
+/* ─── Keyframe animations ─────────────────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px);   }
+  50%       { transform: translateY(-12px); }
+}
+
+@keyframes pulse-ring {
+  0%   { transform: scale(1);   opacity: 0.4; }
+  100% { transform: scale(1.6); opacity: 0;   }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-16px); }
+  to   { opacity: 1; transform: translateX(0);     }
+}
+
+/* ─── Animation utility classes ───────────────────────────────────────────── */
+@layer utilities {
+  .animate-fade-up {
+    animation: fadeUp 0.6s ease forwards;
+    opacity: 0;
+  }
+  .animate-fade-in {
+    animation: fadeIn 0.6s ease forwards;
+    opacity: 0;
+  }
+  .animate-float {
+    animation: float 4s ease-in-out infinite;
+  }
+  .animate-shimmer {
+    animation: shimmer 3s linear infinite;
+  }
+  .animate-pulse-ring {
+    animation: pulse-ring 2s ease-out infinite;
+  }
+  .animate-slide-in-left {
+    animation: slideInLeft 0.4s ease forwards;
+    opacity: 0;
+  }
+
+  /* Stagger helpers */
+  .delay-100 { animation-delay: 0.1s; }
+  .delay-200 { animation-delay: 0.2s; }
+  .delay-300 { animation-delay: 0.3s; }
+  .delay-400 { animation-delay: 0.4s; }
+  .delay-500 { animation-delay: 0.5s; }
+}
+
+/* ─── Konva / template editor ─────────────────────────────────────────────── */
 .editor-canvas-container {
-  box-shadow: 0 0 0 1px rgba(0,0,0,0.05), 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+  box-shadow:
+    0 0 0 1px rgba(0,0,0,0.08),
+    0 20px 25px -5px rgba(0,0,0,0.3),
+    0 10px 10px -5px rgba(0,0,0,0.2);
   background-color: white;
 }
 
@@ -94,18 +221,30 @@
   margin: 0 auto;
 }
 
-/* Figma-like scrollbars */
+/* ─── Scrollbars ──────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: rgba(255,255,255,0.1);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: rgba(245,158,11,0.4);   /* amber tint on hover */
+}
+
+/* ─── Selection highlight ─────────────────────────────────────────────────── */
+::selection {
+  background: rgba(245,158,11,0.25);
+  color: #fff;
+}
+
+/* ─── Focus ring (global) ─────────────────────────────────────────────────── */
+:focus-visible {
+  /* outline: 2px solid hsl(var(--ring)); */
+  outline-offset: 2px;
 }

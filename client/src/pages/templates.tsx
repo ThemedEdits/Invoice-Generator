@@ -73,7 +73,7 @@ export default function Templates() {
       {/* ── Page header ──────────────────────────────────────────────────────── */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Templates</h1>
+          <h1 className="text-3xl font-bold text-white tracking-tight">Templates</h1>
           <p className="text-slate-500 mt-1">Design and manage your invoice layouts.</p>
         </div>
         <Button asChild className="rounded-xl shadow-md shadow-primary/20 hover:-translate-y-0.5 transition-all">
@@ -109,11 +109,11 @@ export default function Templates() {
       {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map(i => (
-            <div key={i} className="rounded-2xl border border-slate-100 overflow-hidden">
-              <div className="aspect-[1/1.4] bg-slate-100 animate-pulse" />
+            <div key={i} className="rounded-2xl border border-white/[0.08] overflow-hidden animate-pulse">
+              <div className="aspect-[1/1.4] bg-white/[0.06]" />
               <div className="p-5 space-y-2">
-                <div className="h-4 bg-slate-100 animate-pulse rounded-lg w-3/4" />
-                <div className="h-3 bg-slate-100 animate-pulse rounded-lg w-1/2" />
+                <div className="h-4 bg-white/[0.06] rounded-lg w-3/4" />
+                <div className="h-3 bg-white/[0.06] rounded-lg w-1/2" />
               </div>
             </div>
           ))}
@@ -121,11 +121,11 @@ export default function Templates() {
       ) : templates.length === 0 ? (
 
         /* ── Empty state ─────────────────────────────────────────────────────── */
-        <div className="bg-white rounded-3xl border border-dashed border-slate-200 p-16 text-center flex flex-col items-center">
+        <div className="bg-white/[0.03] rounded-3xl border border-dashed border-white/[0.08] p-16 text-center flex flex-col items-center">
           <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mb-6">
             <FileText className="w-10 h-10 text-primary" />
           </div>
-          <h3 className="text-xl font-bold text-slate-900 mb-2">No templates yet</h3>
+          <h3 className="text-xl font-bold text-white mb-2">No templates yet</h3>
           <p className="text-slate-500 max-w-md mb-8">
             Upload a PDF or image of your invoice layout to start mapping dynamic fields.
           </p>
@@ -141,7 +141,7 @@ export default function Templates() {
           {templates.map(template => (
             <div
               key={template.id}
-              className="group relative bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-xl hover:border-primary/30 transition-all duration-300"
+              className="group relative bg-white/[0.03] rounded-2xl border border-white/[0.08] overflow-hidden hover:shadow-xl hover:border-primary/30 transition-all duration-300"
             >
               {/* ── Thumbnail ─────────────────────────────────────────────── */}
               <div className="aspect-[1/1.4] relative overflow-hidden bg-slate-100">
@@ -157,7 +157,7 @@ export default function Templates() {
                 </div>
 
                 {/* Field count badge — always visible */}
-                <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm text-primary text-[11px] font-bold px-2 py-0.5 rounded-full border border-primary/20 shadow-sm">
+                <div className="absolute top-3 right-3 bg-white/[0.03]/90 backdrop-blur-sm text-primary text-[11px] font-bold px-2 py-0.5 rounded-full border border-primary/20 shadow-sm">
                   {template.fields?.length ?? 0} fields
                 </div>
               </div>
@@ -165,15 +165,15 @@ export default function Templates() {
               {/* ── Card footer ──────────────────────────────────────────── */}
               <div className="p-4 flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <h3 className="font-bold text-slate-900 text-base truncate">{template.name}</h3>
+                  <h3 className="font-bold text-white text-base truncate">{template.name}</h3>
                   <p className="text-xs text-slate-400 mt-0.5">
                     {template.createdAt
                       ? format(
-                          template.createdAt?.toDate
-                            ? template.createdAt.toDate()
-                            : new Date(template.createdAt),
-                          "MMM d, yyyy"
-                        )
+                        template.createdAt?.toDate
+                          ? template.createdAt.toDate()
+                          : new Date(template.createdAt),
+                        "MMM d, yyyy"
+                      )
                       : "—"}
                   </p>
                 </div>
@@ -183,7 +183,7 @@ export default function Templates() {
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="ghost" size="icon"
-                      className="h-8 w-8 flex-shrink-0 text-slate-400 hover:text-slate-700 -mr-1"
+                      className="h-8 w-8 flex-shrink-0 text-slate-400 hover:text-slate-300 -mr-1"
                     >
                       <MoreVertical className="w-4 h-4" />
                     </Button>
@@ -194,7 +194,7 @@ export default function Templates() {
                         <Edit className="w-4 h-4 mr-2" /> Edit Template
                       </Link>
                     </DropdownMenuItem>
-                    <div className="h-px bg-slate-100 my-1" />
+                    <div className="h-px bg-white/[0.06]my-1" />
                     <DropdownMenuItem
                       className="cursor-pointer text-destructive focus:text-destructive focus:bg-red-50"
                       onClick={() => setDeleteId(template.id)}
@@ -221,7 +221,7 @@ export default function Templates() {
             </AlertDialogTitle>
             <AlertDialogDescription className="text-slate-500 leading-relaxed">
               You are about to permanently delete{" "}
-              <span className="font-semibold text-slate-700">{templateToDelete?.name}</span>.
+              <span className="font-semibold text-slate-300">{templateToDelete?.name}</span>.
               Any invoices already generated from this template will not be affected,
               but you will no longer be able to create new invoices using it.
             </AlertDialogDescription>

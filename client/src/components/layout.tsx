@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
-import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, FileText, Users, FileSpreadsheet,
   LogOut, Loader2, ChevronLeft, ChevronRight, Menu, X,
@@ -10,13 +10,72 @@ import { cn } from "@/lib/utils";
 
 // ─── Nav config ───────────────────────────────────────────────────────────────
 const NAV_ITEMS = [
-  { href: "/",          label: "Dashboard", icon: LayoutDashboard },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/templates", label: "Templates", icon: FileText        },
   { href: "/customers", label: "Customers", icon: Users           },
   { href: "/invoices",  label: "Invoices",  icon: FileSpreadsheet },
 ];
 
 const STORAGE_KEY = "invio_sidebar_collapsed";
+
+// ─── Portal tooltip ───────────────────────────────────────────────────────────
+// Renders directly into document.body so it escapes ALL stacking contexts.
+function NavTooltip({ label, show: shouldShow, children }: {
+  label:   string;
+  show:    boolean;   // only render when sidebar is collapsed
+  children: React.ReactNode;
+}) {
+  const triggerRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+
+  const handleEnter = () => {
+    if (!shouldShow || !triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    setPos({ top: rect.top + rect.height / 2, left: rect.right + 14 });
+  };
+
+  const handleLeave = () => setPos(null);
+
+  // Hide tooltip on scroll / resize
+  useEffect(() => {
+    const hide = () => setPos(null);
+    window.addEventListener("scroll", hide, true);
+    window.addEventListener("resize", hide);
+    return () => {
+      window.removeEventListener("scroll", hide, true);
+      window.removeEventListener("resize", hide);
+    };
+  }, []);
+
+  return (
+    <div ref={triggerRef} onMouseEnter={handleEnter} onMouseLeave={handleLeave}>
+      {children}
+      {pos && shouldShow && createPortal(
+        <div
+          style={{
+            position:  "fixed",
+            top:       pos.top,
+            left:      pos.left,
+            transform: "translateY(-50%)",
+            zIndex:    99999,
+          }}
+          className={cn(
+            "px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap",
+            "bg-[#1a1d24] border border-white/[0.12] text-white",
+            "shadow-xl shadow-black/60",
+            "pointer-events-none select-none",
+            "animate-fade-in",
+          )}
+        >
+          {label}
+          {/* Arrow pointing left */}
+          <span className="absolute right-full top-1/2 -translate-y-1/2 border-[5px] border-transparent border-r-[#1a1d24]" />
+        </div>,
+        document.body,
+      )}
+    </div>
+  );
+}
 
 // ─── Root layout ──────────────────────────────────────────────────────────────
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -32,13 +91,15 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     try { localStorage.setItem(STORAGE_KEY, String(collapsed)); } catch {}
   }, [collapsed]);
 
-  // Close mobile drawer on navigation
   useEffect(() => { setMobileOpen(false); }, [location]);
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="min-h-screen flex items-center justify-center bg-[#0d0f14]">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-8 h-8 animate-spin text-amber-400" />
+          <p className="text-sm text-slate-500">Loading…</p>
+        </div>
       </div>
     );
   }
@@ -49,17 +110,37 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     location.includes("/templates/edit/") || location === "/templates/new";
 
   if (isFullscreen) {
-    return <div className="min-h-screen bg-slate-100 flex flex-col">{children}</div>;
+    return (
+      <div className="min-h-screen bg-[#0d0f14] flex flex-col">
+        {children}
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="min-h-screen bg-[#0d0f14] flex">
+
+      {/* ── Ambient glow ──────────────────────────────────────────────────── */}
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        <div className="absolute top-[-10%] left-[30%] w-[500px] h-[500px] rounded-full bg-amber-500/5 blur-[140px]" />
+        <div className="absolute bottom-[-10%] right-[10%] w-[400px] h-[400px] rounded-full bg-indigo-600/5 blur-[120px]" />
+      </div>
+
+      {/* ── Grid texture ──────────────────────────────────────────────────── */}
+      <div
+        className="pointer-events-none fixed inset-0 z-0"
+        style={{
+          backgroundImage:
+            "linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)",
+          backgroundSize: "40px 40px",
+        }}
+      />
 
       {/* ── Mobile backdrop ───────────────────────────────────────────────── */}
       <div
         onClick={() => setMobileOpen(false)}
         className={cn(
-          "fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-20 md:hidden transition-opacity duration-300",
+          "fixed inset-0 bg-black/60 backdrop-blur-sm z-20 md:hidden transition-opacity duration-300",
           mobileOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none",
         )}
       />
@@ -68,9 +149,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-30 hidden md:flex flex-col",
-          "bg-white border-r border-slate-100",
-          "shadow-[2px_0_20px_rgba(0,0,0,0.04)]",
-          "transition-[width] duration-300 ease-in-out ",
+          "bg-[#0d0f14] border-r border-white/[0.08]",
+          "shadow-[2px_0_24px_rgba(0,0,0,0.3)]",
+          "transition-[width] duration-300 ease-in-out",
           collapsed ? "w-[72px]" : "w-64",
         )}
       >
@@ -87,8 +168,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-30 flex flex-col md:hidden",
-          "bg-white border-r border-slate-100 w-64",
-          "shadow-[4px_0_32px_rgba(0,0,0,0.10)]",
+          "bg-[#0d0f14] border-r border-white/[0.08] w-64",
+          "shadow-[4px_0_40px_rgba(0,0,0,0.5)]",
           "transition-transform duration-300 ease-in-out",
           mobileOpen ? "translate-x-0" : "-translate-x-full",
         )}
@@ -106,26 +187,29 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       {/* ── Page content ──────────────────────────────────────────────────── */}
       <main
         className={cn(
-          "flex-1 min-h-screen flex flex-col",
+          "flex-1 min-h-screen flex flex-col relative z-10",
           "md:transition-[margin-left] md:duration-300 md:ease-in-out",
           collapsed ? "md:ml-[72px]" : "md:ml-64",
         )}
       >
         {/* Mobile top bar */}
-        <header className="md:hidden sticky top-0 z-10 h-14 flex items-center gap-3 px-4 bg-white border-b border-slate-100 shadow-sm">
+        <header className="md:hidden sticky top-0 z-10 h-14 flex items-center gap-3 px-4 bg-[#0d0f14]/90 backdrop-blur-xl border-b border-white/[0.08] shadow-sm">
           <button
             onClick={() => setMobileOpen(true)}
-            className="p-2 rounded-xl text-slate-500 hover:bg-slate-100 active:bg-slate-200 transition-colors"
+            className="p-2 rounded-xl text-slate-500 hover:bg-white/5 hover:text-slate-300 active:bg-white/10 transition-colors"
             aria-label="Open menu"
           >
             <Menu className="w-5 h-5" />
           </button>
           <img
             src="/invio-logo.svg"
-            alt="Invio"
+            alt="Invote"
             className="h-7 w-auto"
             onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
           />
+          <span className="font-semibold text-white text-sm" style={{ fontFamily: "'Cinzel', serif" }}>
+            Invote
+          </span>
         </header>
 
         <div className="flex-1 max-w-6xl w-full mx-auto p-5 md:p-8">
@@ -136,7 +220,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
-// ─── Sidebar inner content ────────────────────────────────────────────────────
+// ─── Sidebar inner ────────────────────────────────────────────────────────────
 function SidebarInner({
   collapsed,
   onToggleCollapse,
@@ -145,12 +229,12 @@ function SidebarInner({
   signOut,
   isMobileClose = false,
 }: {
-  collapsed: boolean;
+  collapsed:        boolean;
   onToggleCollapse: () => void;
-  location: string;
-  user: any;
-  signOut: () => void;
-  isMobileClose?: boolean;
+  location:         string;
+  user:             any;
+  signOut:          () => void;
+  isMobileClose?:   boolean;
 }) {
   const initial = (user.displayName?.[0] ?? user.email?.[0] ?? "U").toUpperCase();
 
@@ -159,11 +243,11 @@ function SidebarInner({
       {/* ── Logo header ───────────────────────────────────────────────── */}
       <div
         className={cn(
-          "h-16 flex items-center flex-shrink-0 border-b border-slate-100 relative",
+          "h-16 flex items-center flex-shrink-0 border-b border-white/[0.08] relative",
           collapsed ? "justify-center px-0" : "px-5 justify-between",
         )}
       >
-        {/* Full logo — fades out when collapsed */}
+        {/* Full logo */}
         <div
           className={cn(
             "flex items-center gap-2.5 transition-all duration-300 overflow-hidden",
@@ -172,60 +256,66 @@ function SidebarInner({
         >
           <img
             src="/invio-logo.svg"
-            alt="Invio"
-            className="h-8 w-auto flex-shrink-0"
+            alt="Invote"
+            className="h-10 w-auto flex-shrink-0"
             onError={e => {
               const img = e.target as HTMLImageElement;
               img.style.display = "none";
               (img.nextElementSibling as HTMLElement)?.classList.remove("hidden");
             }}
           />
-          {/* Text fallback if SVG fails to load */}
-          <span className="hidden font-bold text-xl tracking-tight text-slate-900">Invio</span>
+          <span className="hidden font-bold text-xl text-white" style={{ fontFamily: "'Cinzel', serif" }}>Invote</span>
+          <span className="font-semibold text-xl text-white" style={{ fontFamily: "'Cinzel', serif" }}>Invote</span>
         </div>
 
-        {/* Icon-only logo mark — visible only when collapsed */}
+        {/* Icon-only logo when collapsed */}
         {collapsed && (
           <img
             src="/invio-logo.svg"
-            alt="Invio"
-            className="h-8 w-8 object-contain"
+            alt="Invote"
+            className="h-10 w-8 object-contain"
             onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
           />
         )}
 
-        {/* Toggle button */}
-        <button
-          onClick={onToggleCollapse}
-          aria-label={isMobileClose ? "Close menu" : collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className={cn(
-            "flex items-center justify-center transition-all duration-200",
-            isMobileClose
-              // Mobile: plain icon button in header
-              ? "w-8 h-8 rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 flex-shrink-0"
-              // Desktop: floating pill on the sidebar edge
-              : cn(
-                  "absolute -right-3 top-1/2 -translate-y-1/2 z-100",
-                  "w-6 h-6 rounded-full bg-white border border-slate-200 shadow-md",
-                  "text-slate-400 hover:bg-primary hover:text-white hover:border-primary",
-                  "hover:scale-110 active:scale-95",
-                ),
-          )}
-        >
-          {isMobileClose
-            ? <X className="w-4 h-4" />
-            : collapsed
-              ? <ChevronRight className="w-3.5 h-3.5" />
-              : <ChevronLeft  className="w-3.5 h-3.5" />
-          }
-        </button>
+        {/* Mobile close */}
+        {isMobileClose && (
+          <button
+            onClick={onToggleCollapse}
+            aria-label="Close menu"
+            className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-500 hover:bg-white/5 hover:text-slate-300 transition-colors flex-shrink-0"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
+
+        {/* Desktop collapse toggle — sits on the sidebar edge */}
+        {!isMobileClose && (
+          <button
+            onClick={onToggleCollapse}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            className={cn(
+              "absolute -right-4 top-1/2 -translate-y-1/2 z-[200]",
+              "w-8 h-8 rounded-full flex items-center justify-center",
+              "bg-[#1a1d24] border-2 border-white/[0.10] shadow-lg shadow-black/50",
+              "text-slate-400",
+              "hover:bg-amber-400 hover:text-slate-900 hover:border-amber-400 hover:shadow-amber-500/30",
+              "hover:scale-110 active:scale-95 transition-all duration-200",
+            )}
+          >
+            {collapsed
+              ? <ChevronRight className="w-4 h-4" />
+              : <ChevronLeft  className="w-4 h-4" />
+            }
+          </button>
+        )}
       </div>
 
       {/* ── Navigation ────────────────────────────────────────────────── */}
-      <nav className="flex-1 overflow-y-auto overflow-x-hidden py-4 px-3 space-y-0.5">
+      <nav className="flex-1 overflow-y-auto overflow-x-visible py-4 px-3 space-y-0.5">
 
         {!collapsed && (
-          <p className="px-3 pb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest select-none">
+          <p className="px-3 pb-2 text-[10px] font-bold text-slate-600 uppercase tracking-widest select-none">
             Menu
           </p>
         )}
@@ -233,120 +323,83 @@ function SidebarInner({
         {NAV_ITEMS.map(item => {
           const isActive =
             location === item.href ||
-            (item.href !== "/" && location.startsWith(item.href));
+            location.startsWith(item.href + "/");
 
           return (
-            <div key={item.href} className="relative group/nav">
+            <NavTooltip key={item.href} label={item.label} show={collapsed}>
               <Link
                 href={item.href}
                 className={cn(
-                  "flex items-center rounded-xl text-sm font-medium",
-                  "transition-all duration-200",
-                  collapsed
-                    ? "justify-center h-11 w-11 mx-auto"
-                    : "px-3 py-2.5 gap-3",
+                  "flex items-center rounded-xl text-sm font-medium transition-all duration-200",
+                  collapsed ? "justify-center h-11 w-11 mx-auto" : "px-3 py-2.5 gap-3",
                   isActive
-                    ? "bg-primary text-white shadow-lg shadow-primary/20"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+                    ? "bg-amber-400/15 text-amber-400 border border-amber-400/20"
+                    : "text-slate-500 hover:bg-white/5 hover:text-slate-200 border border-transparent",
                 )}
               >
                 <item.icon
                   className={cn(
                     "w-5 h-5 flex-shrink-0 transition-colors",
-                    isActive
-                      ? "text-white"
-                      : "text-slate-400 group-hover/nav:text-slate-700",
+                    isActive ? "text-amber-400" : "text-slate-500",
                   )}
                 />
                 {!collapsed && (
                   <>
-                    <span className="truncate flex-1 overflow-hidden">{item.label}</span>
+                    <span className="truncate flex-1 min-w-0">{item.label}</span>
                     {isActive && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-white/60 flex-shrink-0" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400/60 flex-shrink-0" />
                     )}
                   </>
                 )}
               </Link>
-
-              {/* Tooltip — only when collapsed on desktop */}
-              {collapsed && (
-                <div className={cn(
-                  "absolute  left-full top-1/2 -translate-y-1/2 ml-3 z-50",
-                  "px-2.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap",
-                  "bg-slate-900 text-white shadow-xl",
-                  "pointer-events-none select-none",
-                  "opacity-0 group-hover/nav:opacity-100",
-                  "translate-x-1 group-hover/nav:translate-x-0",
-                  "transition-all duration-150",
-                )}>
-                  {item.label}
-                  {/* Arrow pointing left */}
-                  <span className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-slate-900" />
-                </div>
-              )}
-            </div>
+            </NavTooltip>
           );
         })}
       </nav>
 
       {/* ── User footer ───────────────────────────────────────────────── */}
       <div className={cn(
-        "flex-shrink-0 border-t border-slate-100 space-y-1",
+        "flex-shrink-0 border-t border-white/[0.08] space-y-1",
         collapsed ? "p-2" : "p-3",
       )}>
 
-        {/* User info card */}
+        {/* User info */}
         <div className={cn(
-          "flex items-center rounded-xl bg-slate-50 border border-slate-100 overflow-hidden",
+          "flex items-center rounded-xl bg-white/[0.03] border border-white/[0.08]",
           collapsed ? "justify-center p-2" : "px-3 py-2.5 gap-3",
         )}>
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-indigo-500 flex items-center justify-center text-white font-bold text-xs flex-shrink-0 shadow-sm ring-2 ring-white">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-slate-900 font-bold text-xs flex-shrink-0 shadow-md ring-2 ring-amber-400/20">
             {initial}
           </div>
           {!collapsed && (
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-slate-800 truncate leading-none">
+              <p className="text-sm font-semibold text-white truncate leading-none">
                 {user.displayName || user.email?.split("@")[0]}
               </p>
-              <p className="text-[11px] text-slate-400 truncate mt-0.5">{user.email}</p>
+              <p className="text-[11px] text-slate-500 truncate mt-0.5">{user.email}</p>
             </div>
           )}
         </div>
 
         {/* Sign out */}
-        <div className="relative group/signout">
+        <NavTooltip label="Sign Out" show={collapsed}>
           {collapsed ? (
             <button
               onClick={signOut}
-              className="w-full flex items-center justify-center h-10 rounded-xl text-slate-400 hover:text-destructive hover:bg-red-50 transition-all duration-200"
+              className="w-full flex items-center justify-center h-10 rounded-xl text-slate-500 hover:text-red-400 hover:bg-red-400/10 transition-all duration-200"
             >
               <LogOut className="w-4 h-4" />
             </button>
           ) : (
-            <Button
-              variant="ghost" size="sm" onClick={signOut}
-              className="w-full justify-start h-9 px-3 text-slate-500 hover:text-destructive hover:bg-red-50 rounded-xl font-medium"
+            <button
+              onClick={signOut}
+              className="w-full flex items-center gap-2 h-9 px-3 rounded-xl text-sm font-medium text-slate-500 hover:text-red-400 hover:bg-red-400/10 transition-all duration-200"
             >
-              <LogOut className="w-4 h-4 mr-2 flex-shrink-0" />
+              <LogOut className="w-4 h-4 flex-shrink-0" />
               Sign Out
-            </Button>
+            </button>
           )}
-
-          {/* Tooltip for sign-out when collapsed */}
-          {collapsed && (
-            <div className={cn(
-              "absolute left-full top-1/2 -translate-y-1/2 ml-3 z-50",
-              "px-2.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap",
-              "bg-slate-900 text-white shadow-xl pointer-events-none select-none",
-              "opacity-0 group-hover/signout:opacity-100",
-              "translate-x-1 group-hover/signout:translate-x-0",
-              "transition-all duration-150",
-            )}>
-              Sign Out
-              <span className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-slate-900" />
-            </div>
-          )}
-        </div>
+        </NavTooltip>
       </div>
     </>
   );
