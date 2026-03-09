@@ -112,9 +112,9 @@ export default function InvoiceGenerator() {
   // ── Computed value resolver ────────────────────────────────────────────────
   const getComputedValue = (type: string): string => {
     switch (type) {
-      case "subtotal": return `$${fmt(subtotal)}`;
-      case "grand_total": return `$${fmt(grandTotal)}`;
-      case "remaining_balance": return `$${fmt(remainingBalance)}`;
+      case "subtotal": return `Rs ${fmt(subtotal)}`;
+      case "grand_total": return `Rs ${fmt(grandTotal)}`;
+      case "remaining_balance": return `Rs ${fmt(remainingBalance)}`;
       default: return "";
     }
   };
@@ -180,11 +180,11 @@ export default function InvoiceGenerator() {
         if (AUTO_COMPUTED_FIELDS.includes(type)) {
           text = getComputedValue(type);
         } else if (type === "tax") {
-          text = `$${fmt(taxAmt)}`;
+          text = `Rs ${fmt(taxAmt)}`;
         } else if (type === "discount") {
-          text = `$${fmt(discountAmt)}`;
+          text = `Rs ${fmt(discountAmt)}`;
         } else if (type === "amount_paid") {
-          text = `$${fmt(paidAmt)}`;
+          text = `Rs ${fmt(paidAmt)}`;
         } else {
           text = fieldValues[type] || "";
         }
@@ -282,7 +282,7 @@ export default function InvoiceGenerator() {
           // ── Draw unit price ────────────────────────────────────────────
           if (upField && upFont) {
             const [r, g, b] = hexToRgb01(upField.color ?? "#1a1a1a");
-            const text = `$${fmt(li.unitPrice)}`;
+            const text = `${fmt(li.unitPrice)}`;
             const drawX = getDrawX(text, upFont, upField.fontSize, upField.x, upField.width, upField.alignment);
             firstPage.drawText(text, { x: drawX, y: firstLineY, size: upField.fontSize, font: upFont, color: rgb(r, g, b) });
           }
@@ -290,7 +290,7 @@ export default function InvoiceGenerator() {
           // ── Draw line total ────────────────────────────────────────────
           if (ltField && ltFont) {
             const [r, g, b] = hexToRgb01(ltField.color ?? "#1a1a1a");
-            const text = `$${fmt(li.lineTotal)}`;
+            const text = `${fmt(li.lineTotal)}`;
             const drawX = getDrawX(text, ltFont, ltField.fontSize, ltField.x, ltField.width, ltField.alignment);
             firstPage.drawText(text, { x: drawX, y: firstLineY, size: ltField.fontSize, font: ltFont, color: rgb(r, g, b) });
           }
@@ -494,9 +494,9 @@ export default function InvoiceGenerator() {
 
                   {/* Unit Price */}
                   <div className="relative mt-1">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">Rs</span>
                     <Input
-                      placeholder="0.00"
+                      placeholder="0"
                       value={item.unitPrice ? formatCurrencyInput(String(item.unitPrice)) : ""}
                       onChange={e => updateLineItem(idx, "unitPrice", parseFloat(e.target.value.replace(/,/g, "")) || 0)}
                       className="bg-white/[0.03] border-white/[0.08] text-sm h-9 pl-7"
@@ -505,7 +505,7 @@ export default function InvoiceGenerator() {
 
                   {/* Line Total (auto) */}
                   <div className="bg-white/[0.03] border border-white/[0.08] rounded-md h-9 flex items-center px-3 mt-1">
-                    <span className="text-sm font-medium text-slate-300">${fmt(item.lineTotal)}</span>
+                    <span className="text-sm font-medium text-slate-300">Rs {fmt(item.lineTotal)}</span>
                   </div>
 
                   {/* Remove */}
@@ -527,14 +527,14 @@ export default function InvoiceGenerator() {
 
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-500">Subtotal</span>
-                  <span className="font-semibold text-slate-100">${fmt(subtotal)}</span>
+                  <span className="font-semibold text-slate-100">Rs {fmt(subtotal)}</span>
                 </div>
 
                 {templateHasField("discount") && (
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-slate-500">Discount ($)</span>
+                    <span className="text-slate-500">Discount </span>
                     <div className="relative w-28">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">Rs </span>
                       <Input value={discountAmount} onChange={e => setDiscountAmount(formatCurrencyInput(e.target.value))} className="h-8 text-right text-sm bg-white/[0.04] border-white/[0.08] pl-7" />
                     </div>
                   </div>
@@ -545,28 +545,28 @@ export default function InvoiceGenerator() {
                     <span className="text-slate-500">Tax (%)</span>
                     <div className="relative w-28">
                       <Input type="number" min={0} max={100} value={taxPercent} onChange={e => setTaxPercent(e.target.value)} className="h-8 text-right text-sm bg-white/[0.04] border-white/[0.08]" placeholder="0" />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">%</span>
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></span>
                     </div>
                   </div>
                 )}
 
                 {(templateHasField("tax") || templateHasField("discount")) && (
                   <div className="flex justify-between text-sm text-slate-500 border-t border-white/[0.19] pt-2">
-                    {templateHasField("tax") && <span>Tax: ${fmt(taxAmt)}</span>}
-                    {templateHasField("discount") && <span>Discount: −${fmt(discountAmt)}</span>}
+                    {templateHasField("tax") && <span>Tax: Rs {fmt(taxAmt)}</span>}
+                    {templateHasField("discount") && <span>Discount: Rs {fmt(discountAmt)}</span>}
                   </div>
                 )}
 
                 <div className="flex justify-between text-base font-bold border-t border-white/[0.08] pt-3">
                   <span className="text-white">Grand Total</span>
-                  <span className="text-primary">${fmt(grandTotal)}</span>
+                  <span className="text-primary">Rs {fmt(grandTotal)}</span>
                 </div>
 
                 {templateHasField("amount_paid") && (
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-slate-500">Amount Paid ($)</span>
+                    <span className="text-slate-500">Amount Paid (Rs)</span>
                     <div className="relative w-28">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></span>
                       <Input value={amountPaid} onChange={e => setAmountPaid(formatCurrencyInput(e.target.value))} className="h-8 text-right text-sm bg-white/[0.04] border-white/[0.08] pl-7" />
                     </div>
                   </div>
@@ -575,7 +575,7 @@ export default function InvoiceGenerator() {
                 {templateHasField("remaining_balance") && (
                   <div className={`flex justify-between text-sm font-semibold rounded-lg px-3 py-2 ${remainingBalance <= 0 ? "bg-white/[0.09] text-slate-200" : "bg-amber-50 text-amber-700"}`}>
                     <span>Remaining Balance</span>
-                    <span>${fmt(Math.max(remainingBalance, 0))}</span>
+                    <span>Rs {fmt(Math.max(remainingBalance, 0))}</span>
                   </div>
                 )}
               </div>

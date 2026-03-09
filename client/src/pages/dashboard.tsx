@@ -103,7 +103,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           label="Total Revenue"
-          value={`$${fmt$(stats.revenue)}`}
+          value={`Rs ${fmt$(stats.revenue)}`}
           sub={`${stats.paid.length} paid invoice${stats.paid.length !== 1 ? "s" : ""}`}
           icon={DollarSign}
           iconBg="bg-emerald-400/15"
@@ -112,7 +112,7 @@ export default function Dashboard() {
         />
         <MetricCard
           label="Outstanding"
-          value={`$${fmt$(stats.outstanding)}`}
+          value={`Rs ${fmt$(stats.outstanding)}`}
           sub={`${stats.overdue.length} overdue · ${stats.pending.length} sent`}
           icon={TrendingUp}
           iconBg="bg-amber-400/15"

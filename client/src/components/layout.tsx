@@ -7,13 +7,14 @@ import {
   LogOut, Loader2, ChevronLeft, ChevronRight, Menu, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AiAssistant } from "@/components/ai-assistant";
 
 // ─── Nav config ───────────────────────────────────────────────────────────────
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/templates", label: "Templates", icon: FileText        },
-  { href: "/customers", label: "Customers", icon: Users           },
-  { href: "/invoices",  label: "Invoices",  icon: FileSpreadsheet },
+  { href: "/templates", label: "Templates", icon: FileText },
+  { href: "/customers", label: "Customers", icon: Users },
+  { href: "/invoices", label: "Invoices", icon: FileSpreadsheet },
 ];
 
 const STORAGE_KEY = "invio_sidebar_collapsed";
@@ -21,8 +22,8 @@ const STORAGE_KEY = "invio_sidebar_collapsed";
 // ─── Portal tooltip ───────────────────────────────────────────────────────────
 // Renders directly into document.body so it escapes ALL stacking contexts.
 function NavTooltip({ label, show: shouldShow, children }: {
-  label:   string;
-  show:    boolean;   // only render when sidebar is collapsed
+  label: string;
+  show: boolean;   // only render when sidebar is collapsed
   children: React.ReactNode;
 }) {
   const triggerRef = useRef<HTMLDivElement>(null);
@@ -53,11 +54,11 @@ function NavTooltip({ label, show: shouldShow, children }: {
       {pos && shouldShow && createPortal(
         <div
           style={{
-            position:  "fixed",
-            top:       pos.top,
-            left:      pos.left,
+            position: "fixed",
+            top: pos.top,
+            left: pos.left,
             transform: "translateY(-50%)",
-            zIndex:    99999,
+            zIndex: 99999,
           }}
           className={cn(
             "px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap",
@@ -88,7 +89,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
-    try { localStorage.setItem(STORAGE_KEY, String(collapsed)); } catch {}
+    try { localStorage.setItem(STORAGE_KEY, String(collapsed)); } catch { }
   }, [collapsed]);
 
   useEffect(() => { setMobileOpen(false); }, [location]);
@@ -215,6 +216,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="flex-1 max-w-6xl w-full mx-auto p-5 md:p-8">
           {children}
         </div>
+        <AiAssistant />
       </main>
     </div>
   );
@@ -229,12 +231,12 @@ function SidebarInner({
   signOut,
   isMobileClose = false,
 }: {
-  collapsed:        boolean;
+  collapsed: boolean;
   onToggleCollapse: () => void;
-  location:         string;
-  user:             any;
-  signOut:          () => void;
-  isMobileClose?:   boolean;
+  location: string;
+  user: any;
+  signOut: () => void;
+  isMobileClose?: boolean;
 }) {
   const initial = (user.displayName?.[0] ?? user.email?.[0] ?? "U").toUpperCase();
 
@@ -305,7 +307,7 @@ function SidebarInner({
           >
             {collapsed
               ? <ChevronRight className="w-4 h-4" />
-              : <ChevronLeft  className="w-4 h-4" />
+              : <ChevronLeft className="w-4 h-4" />
             }
           </button>
         )}
@@ -400,6 +402,20 @@ function SidebarInner({
             </button>
           )}
         </NavTooltip>
+        {/* ── Designed by ───────────────────────────────────────────────── */}
+        {!collapsed && (
+          <p className="px-3 pt-1 text-[14px] text-slate-600 text-center">
+            Designed by{" "}
+            <a
+              href="https://themed-edits.vercel.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-amber-400 transition-colors"
+            >
+              Themed Edits
+            </a>
+          </p>
+        )}
       </div>
     </>
   );
