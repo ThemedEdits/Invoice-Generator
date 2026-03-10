@@ -57,33 +57,33 @@ export default function Dashboard() {
   );
 
   // ── loading skeleton ─────────────────────────────────────────────────────
- if (loading) {
-  return (
-    <div className="space-y-8 animate-pulse">
-      <div className="h-10 w-48 bg-white/[0.08] rounded-xl" />
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[1, 2, 3, 4].map(i => (
-          <div key={i} className="h-28 bg-white/[0.06] rounded-2xl" />
-        ))}
+  if (loading) {
+    return (
+      <div className="space-y-6 sm:space-y-8 animate-pulse">
+        <div className="h-10 w-48 bg-white/[0.08] rounded-xl" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="h-24 sm:h-28 bg-white/[0.06] rounded-2xl" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+          <div className="lg:col-span-2 h-80 sm:h-96 bg-white/[0.06] rounded-2xl" />
+          <div className="h-80 sm:h-96 bg-white/[0.06] rounded-2xl" />
+        </div>
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 h-96 bg-white/[0.06] rounded-2xl" />
-        <div className="h-96 bg-white/[0.06] rounded-2xl" />
-      </div>
-    </div>
-  );
-}
+    );
+  }
 
   const hasData = invoices.length > 0;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
 
       {/* ── Page header ────────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">Dashboard</h1>
-          <p className="text-slate-500 mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">Dashboard</h1>
+          <p className="text-slate-500 mt-1 text-sm sm:text-base">
             {hasData
               ? `${stats.thisWeek.length} invoice${stats.thisWeek.length !== 1 ? "s" : ""} created this week`
               : "Welcome! Get started by creating your first invoice."}
@@ -91,7 +91,7 @@ export default function Dashboard() {
         </div>
         <Button
           asChild
-          className="rounded-xl shadow-md shadow-primary/20 hover:-translate-y-0.5 transition-all"
+          className="w-full sm:w-auto rounded-xl shadow-md shadow-primary/20 hover:-translate-y-0.5 transition-all"
         >
           <Link href="/invoices/new">
             <Plus className="w-4 h-4 mr-2" /> Create Invoice
@@ -100,7 +100,7 @@ export default function Dashboard() {
       </div>
 
       {/* ── Metric cards ───────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 backdrop-blur-sm">
         <MetricCard
           label="Total Revenue"
           value={`Rs ${fmt$(stats.revenue)}`}
@@ -151,11 +151,11 @@ export default function Dashboard() {
       )}
 
       {/* ── Main grid ──────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
 
         {/* Recent invoices */}
-        <div className="lg:col-span-2 bg-[--card-foreground] rounded-2xl border border-white/[0.19] shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.19] bg-white/[0.04]/50">
+        <div className="lg:col-span-2 bg-[--card-foreground] rounded-2xl border border-white/[0.19] shadow-sm overflow-hidden backdrop-blur-sm">
+          <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-white/[0.19] bg-white/[0.04]/50">
             <div className="flex items-center gap-2">
               <FileText className="w-4 h-4 text-primary" />
               <h2 className="text-base font-semibold text-slate-100">Recent Invoices</h2>
@@ -185,10 +185,10 @@ export default function Dashboard() {
                 return (
                   <div
                     key={invoice.id}
-                    className="flex items-center gap-4 px-6 py-4 hover:bg-white/[0.04]/80 transition-colors group"
+                    className="flex items-center gap-3 sm:gap-4 px-4 sm:px-6 py-3 sm:py-4 hover:bg-white/[0.04]/80 transition-colors group"
                   >
                     {/* Avatar */}
-                    <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${grad} flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-sm`}>
+                    <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br ${grad} flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-sm`}>
                       {(customer?.name ?? "?").charAt(0).toUpperCase()}
                     </div>
 
@@ -198,7 +198,8 @@ export default function Dashboard() {
                         {customer?.name ?? "Unknown Customer"}
                       </p>
                       <p className="text-xs text-slate-400 mt-0.5">
-                        INV-{invoice.id.substring(0, 6).toUpperCase()} · {format(date, "MMM d, yyyy")}
+                        <span className="hidden xs:inline">INV-{invoice.id.substring(0, 6).toUpperCase()} · </span>
+                        {format(date, "MMM d, yyyy")}
                       </p>
                     </div>
 
@@ -210,16 +211,16 @@ export default function Dashboard() {
                       <StatusPill status={invoice.status} />
                     </div>
 
-                    {/* View link */}
+                    {/* View link — hidden on mobile to avoid clutter */}
                     {invoice.pdfURL && (
                       <a
                         href={invoice.pdfURL}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                        className="hidden sm:flex opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
                         title="View PDF"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-white/[0.06]hover:bg-primary hover:text-white flex items-center justify-center text-slate-400 transition-all">
+                        <div className="w-8 h-8 rounded-lg bg-white/[0.06] hover:bg-primary hover:text-white flex items-center justify-center text-slate-400 transition-all">
                           <ArrowUpRight className="w-4 h-4" />
                         </div>
                       </a>
@@ -232,15 +233,15 @@ export default function Dashboard() {
         </div>
 
         {/* Right column */}
-        <div className="space-y-5">
+        <div className="space-y-4 sm:space-y-5">
 
           {/* Quick actions */}
-          <div className="bg-white/[0.03] rounded-2xl border border-white/[0.08] overflow-hidden">
-            <div className="flex items-center gap-2 px-5 py-4 border-b border-white/[0.08]">
+          <div className="bg-white/[0.03] rounded-2xl border border-white/[0.08] overflow-hidden backdrop-blur-sm">
+            <div className="flex items-center gap-2 px-4 sm:px-5 py-3 sm:py-4 border-b border-white/[0.08]">
               <Zap className="w-4 h-4 text-amber-400" />
               <h2 className="text-base font-semibold text-white">Quick Actions</h2>
             </div>
-            <div className="p-4 grid grid-cols-2 gap-2.5">
+            <div className="p-3 sm:p-4 grid grid-cols-4 sm:grid-cols-2 gap-2 sm:gap-2.5">
               {[
                 { label: "New Invoice", icon: Plus, href: "/invoices/new", color: "bg-amber-400/10  text-amber-400  hover:bg-amber-400  hover:text-slate-900" },
                 { label: "Add Customer", icon: Users, href: "/customers", color: "bg-sky-400/10    text-sky-400    hover:bg-sky-400    hover:text-slate-900" },
@@ -250,22 +251,22 @@ export default function Dashboard() {
                 <Link
                   key={a.href}
                   href={a.href}
-                  className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer border border-white/[0.06] hover:border-transparent hover:-translate-y-0.5 hover:shadow-lg ${a.color}`}
+                  className={`flex flex-col items-center justify-center gap-1.5 sm:gap-2 p-2.5 sm:p-4 rounded-xl text-[10px] sm:text-xs font-semibold transition-all duration-200 cursor-pointer border border-white/[0.06] hover:border-transparent hover:-translate-y-0.5 hover:shadow-lg ${a.color}`}
                 >
-                  <a.icon className="w-5 h-5" />
-                  {a.label}
+                  <a.icon className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span className="text-center leading-tight">{a.label}</span>
                 </Link>
               ))}
             </div>
           </div>
 
           {/* Invoice status summary */}
-          <div className="bg-white/[0.03] rounded-2xl border border-white/[0.08] overflow-hidden">
-            <div className="flex items-center gap-2 px-5 py-4 border-b border-white/[0.08]">
+          <div className="bg-white/[0.03] rounded-2xl border border-white/[0.08] overflow-hidden backdrop-blur-sm">
+            <div className="flex items-center gap-2 px-4 sm:px-5 py-3 sm:py-4 border-b border-white/[0.08]">
               <CheckCircle2 className="w-4 h-4 text-amber-400" />
               <h2 className="text-base font-semibold text-white">Status Summary</h2>
             </div>
-            <div className="p-4 space-y-3">
+            <div className="p-3 sm:p-4 space-y-2.5 sm:space-y-3">
               {[
                 { label: "Paid", count: stats.paid.length, color: "bg-emerald-400/15 text-emerald-400", dot: "bg-emerald-400" },
                 { label: "Sent", count: stats.pending.length, color: "bg-sky-400/15     text-sky-400", dot: "bg-sky-400" },
@@ -273,7 +274,7 @@ export default function Dashboard() {
                 { label: "Draft", count: invoices.filter(i => !i.status || i.status === "Draft").length, color: "bg-white/[0.06]   text-slate-400", dot: "bg-slate-500" },
               ].map(s => (
                 <div key={s.label} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
+                  <div className="flex items-center gap-2 sm:gap-2.5">
                     <span className={`w-2 h-2 rounded-full ${s.dot}`} />
                     <span className="text-sm text-slate-400 font-medium">{s.label}</span>
                   </div>
@@ -287,7 +288,7 @@ export default function Dashboard() {
 
           {/* Overdue alert */}
           {stats.overdue.length > 0 && (
-            <div className="bg-red-50 border border-red-100 rounded-2xl p-4 flex items-start gap-3">
+            <div className="bg-red-50 border border-red-100 rounded-2xl p-3 sm:p-4 flex items-start gap-3">
               <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 mt-0.5">
                 <AlertCircle className="w-4 h-4 text-red-600" />
               </div>
@@ -319,14 +320,14 @@ function MetricCard({
   icon: any; iconBg: string; iconColor: string; accent: string;
 }) {
   return (
-    <div className={`bg-white/[0.03] rounded-2xl border shadow-sm p-5 flex items-start gap-4 ${accent}`}>
-      <div className={`w-11 h-11 rounded-xl ${iconBg} flex items-center justify-center flex-shrink-0`}>
-        <Icon className={`w-5 h-5 ${iconColor}`} />
+    <div className={`bg-white/[0.03] rounded-2xl border shadow-sm p-3.5 sm:p-5 flex items-start gap-3 sm:gap-4 ${accent}`}>
+      <div className={`w-9 h-9 sm:w-11 sm:h-11 rounded-xl ${iconBg} flex items-center justify-center flex-shrink-0`}>
+        <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${iconColor}`} />
       </div>
       <div className="min-w-0">
-        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">{label}</p>
-        <p className="text-xl font-bold text-white mt-0.5 truncate">{value}</p>
-        <p className="text-xs text-slate-400 mt-0.5 truncate">{sub}</p>
+        <p className="text-[10px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wide">{label}</p>
+        <p className="text-base sm:text-xl font-bold text-white mt-0.5 truncate">{value}</p>
+        <p className="text-[10px] sm:text-xs text-slate-400 mt-0.5 truncate">{sub}</p>
       </div>
     </div>
   );
@@ -340,7 +341,7 @@ function StatusBar({
   if (total === 0) return null;
   const pct = (n: number) => `${Math.round((n / total) * 100)}%`;
   return (
-    <div className="bg-white/[0.03] rounded-2xl border border-white/[0.19] shadow-sm px-6 py-4">
+    <div className="bg-white/[0.03] rounded-2xl border border-white/[0.19] shadow-sm px-4 sm:px-6 py-3 sm:py-4">
       <div className="flex items-center justify-between mb-3">
         <p className="text-sm font-semibold text-slate-300">Invoice Overview</p>
         <p className="text-xs text-slate-400">{total} total</p>
@@ -351,7 +352,7 @@ function StatusBar({
         {overdue > 0 && <div className="bg-red-400    rounded-full transition-all duration-500" style={{ width: pct(overdue) }} title={`Overdue: ${overdue}`} />}
         {draft > 0 && <div className="bg-white/[0.08] rounded-full transition-all duration-500" style={{ width: pct(draft) }} title={`Draft: ${draft}`} />}
       </div>
-      <div className="flex items-center gap-4 mt-3 flex-wrap">
+      <div className="flex items-center gap-3 sm:gap-4 mt-3 flex-wrap">
         {[
           { label: "Paid", count: paid, color: "bg-emerald-500" },
           { label: "Sent", count: pending, color: "bg-blue-400" },
@@ -373,7 +374,7 @@ function StatusPill({ status }: { status: string }) {
     Paid: "bg-emerald-100 text-emerald-700",
     Sent: "bg-blue-100 text-blue-700",
     Overdue: "bg-red-100 text-red-700",
-    Draft: "bg-white/[0.06]text-slate-500",
+    Draft: "bg-white/[0.06] text-slate-500",
   };
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold mt-1 ${map[status] ?? map.Draft}`}>
@@ -388,9 +389,9 @@ function EmptyState({
   icon: any; title: string; desc: string; href: string; cta: string;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center py-14 px-6 text-center">
-      <div className="w-14 h-14 rounded-2xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center mb-4">
-        <Icon className="w-7 h-7 text-amber-400" />
+    <div className="flex flex-col items-center justify-center py-10 sm:py-14 px-6 text-center">
+      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center mb-4">
+        <Icon className="w-6 h-6 sm:w-7 sm:h-7 text-amber-400" />
       </div>
       <p className="font-semibold text-white">{title}</p>
       <p className="text-sm text-slate-500 mt-1 mb-5">{desc}</p>

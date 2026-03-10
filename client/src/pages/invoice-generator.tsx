@@ -199,32 +199,17 @@ export default function InvoiceGenerator() {
       }
 
       // ── Draw line items with smart row height ────────────────────────────
-      //
-      // Strategy:
-      //   • The "description" template field defines the COLUMN position (x, width, fontSize).
-      //   • Its drawn height in the template tells us the maximum box height the designer
-      //     intended, but we ignore that for row-height purposes — instead we measure how
-      //     many lines the actual description text needs and derive the row height from that.
-      //   • qty / unit_price / line_total always stay on the FIRST line of each row (top).
-      //   • A ROW_GAP of 6pt separates consecutive rows.
-      //   • If the description field is absent we fall back to a fixed single-line row height.
-
       const descField = activeTemplate.fields.find(f => f.type === "description") as any;
       const qtyField = activeTemplate.fields.find(f => f.type === "quantity") as any;
       const upField = activeTemplate.fields.find(f => f.type === "unit_price") as any;
       const ltField = activeTemplate.fields.find(f => f.type === "line_total") as any;
 
       if (descField || qtyField || upField || ltField) {
-        // Embed fonts for row fields once
         const descFont = descField ? await getFont(descField.fontFamily) : null;
         const qtyFont = qtyField ? await getFont(qtyField.fontFamily) : null;
         const upFont = upField ? await getFont(upField.fontFamily) : null;
         const ltFont = ltField ? await getFont(ltField.fontFamily) : null;
 
-        // Start Y (pdf coords = bottom-up).
-        // We track the BASELINE of the first line of the current row in PDF coords.
-        // Template field .y is from the top of the page (Konva coords), so we convert:
-        //   pdfY = pageHeight - field.y - fontSize
         const firstRowBaselineY = descField
           ? height - descField.y - descField.fontSize
           : qtyField
@@ -235,14 +220,11 @@ export default function InvoiceGenerator() {
                 ? height - ltField.y - ltField.fontSize
                 : height - 100;
 
-        // currentTopY is the PDF-Y of the very top of the current row's bounding box
-        // (i.e. firstLine baseline + fontSize above).  We'll step downward each iteration.
         let currentTopY = firstRowBaselineY + (descField?.fontSize ?? qtyField?.fontSize ?? 12);
 
         for (let rowIdx = 0; rowIdx < lineItems.length; rowIdx++) {
           const li = lineItems[rowIdx];
 
-          // ── Compute how many lines the description takes for THIS row ──
           let descLines: string[] = [""];
           let descLineHeight = 0;
           if (descField && descFont) {
@@ -250,18 +232,11 @@ export default function InvoiceGenerator() {
             descLineHeight = descField.fontSize * LINE_HEIGHT_RATIO;
           }
 
-          // actual height consumed by description text for this row
           const descTextHeight = descLines.length * descLineHeight;
-
-          // row height = whichever is taller: the description text, or a single line
-          // (so short descriptions still give a normal row height)
           const singleLineH = (descField?.fontSize ?? qtyField?.fontSize ?? qtyField?.fontSize ?? 12) * LINE_HEIGHT_RATIO;
           const rowHeight = Math.max(descTextHeight, singleLineH);
-
-          // first-line baseline for this row (PDF coords, descending)
           const firstLineY = currentTopY - descField?.fontSize ?? singleLineH;
 
-          // ── Draw description lines ──────────────────────────────────────
           if (descField && descFont) {
             const [r, g, b] = hexToRgb01(descField.color ?? "#1a1a1a");
             descLines.forEach((line, li_idx) => {
@@ -271,7 +246,6 @@ export default function InvoiceGenerator() {
             });
           }
 
-          // ── Draw qty (first line of row, right-aligned by field setting) ──
           if (qtyField && qtyFont) {
             const [r, g, b] = hexToRgb01(qtyField.color ?? "#1a1a1a");
             const text = String(li.quantity);
@@ -279,7 +253,6 @@ export default function InvoiceGenerator() {
             firstPage.drawText(text, { x: drawX, y: firstLineY, size: qtyField.fontSize, font: qtyFont, color: rgb(r, g, b) });
           }
 
-          // ── Draw unit price ────────────────────────────────────────────
           if (upField && upFont) {
             const [r, g, b] = hexToRgb01(upField.color ?? "#1a1a1a");
             const text = `${fmt(li.unitPrice)}`;
@@ -287,7 +260,6 @@ export default function InvoiceGenerator() {
             firstPage.drawText(text, { x: drawX, y: firstLineY, size: upField.fontSize, font: upFont, color: rgb(r, g, b) });
           }
 
-          // ── Draw line total ────────────────────────────────────────────
           if (ltField && ltFont) {
             const [r, g, b] = hexToRgb01(ltField.color ?? "#1a1a1a");
             const text = `${fmt(li.lineTotal)}`;
@@ -295,8 +267,6 @@ export default function InvoiceGenerator() {
             firstPage.drawText(text, { x: drawX, y: firstLineY, size: ltField.fontSize, font: ltFont, color: rgb(r, g, b) });
           }
 
-          // ── Advance currentTopY downward for next row ──────────────────
-          // Move down by actual row height + gap (PDF Y goes down as we subtract)
           currentTopY -= rowHeight + ROW_GAP;
         }
       }
@@ -361,7 +331,7 @@ export default function InvoiceGenerator() {
         ))}
       </div>
 
-      <div className="bg-white/[0.03] rounded-2xl shadow-xl shadow-slate-200/50 border border-white/[0.19] overflow-hidden">
+      <div className="bg-white/[0.03] rounded-2xl shadow-xl shadow-black/40 border border-white/[0.19] overflow-hidden backdrop-blur-sm">
 
         {/* ── STEP 1 ─────────────────────────────────────────────────────── */}
         {step === 1 && (
@@ -452,9 +422,9 @@ export default function InvoiceGenerator() {
 
         {/* ── STEP 3 ─────────────────────────────────────────────────────── */}
         {step === 3 && (
-          <div className="p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="p-4 sm:p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
-            {/* Line items table */}
+            {/* Line items */}
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <Label className="text-base font-semibold">Line Items</Label>
@@ -463,58 +433,108 @@ export default function InvoiceGenerator() {
                 </Button>
               </div>
 
-              {/* Header row */}
-              <div className="grid grid-cols-[1fr_80px_120px_110px_40px] gap-2 px-3 pb-1 border-b border-white/[0.19]">
+              {/* ── Desktop header (hidden on mobile) ── */}
+              <div className="hidden sm:grid grid-cols-[1fr_80px_120px_110px_40px] gap-2 px-3 pb-1 border-b border-white/[0.19]">
                 {["Description", "Qty", "Unit Price", "Line Total", ""].map((h, i) => (
                   <span key={i} className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{h}</span>
                 ))}
               </div>
 
-              {/* Data rows — description uses a textarea so long text is visible while editing */}
-              {lineItems.map((item, idx) => (
-                <div key={idx} className="grid grid-cols-[1fr_80px_120px_110px_40px] gap-2 items-start bg-white/[0.04] px-3 py-2.5 rounded-xl border border-white/[0.19]">
-
-                  {/* Description — textarea grows with content */}
-                  <textarea
-                    placeholder="Item description..."
-                    value={item.description}
-                    rows={2}
-                    onChange={e => updateLineItem(idx, "description", e.target.value)}
-                    className="bg-white/[0.03] border-[1.5px] border-white/[0.08] rounded-md text-sm px-3 py-2 resize-none w-full focus:outline-none  focus:ring-primary/10 focus:border-primary"
-                    style={{ minHeight: "90px", lineHeight: "1.5" }}
-                  />
-
-                  {/* Qty */}
-                  <Input
-                    type="number" min={0} step={1} placeholder="1"
-                    value={item.quantity || ""}
-                    onChange={e => updateLineItem(idx, "quantity", parseInt(e.target.value) || 0)}
-                    className="bg-white/[0.03] border-white/[0.08] text-sm h-9 mt-1"
-                  />
-
-                  {/* Unit Price */}
-                  <div className="relative mt-1">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">Rs</span>
-                    <Input
-                      placeholder="0"
-                      value={item.unitPrice ? formatCurrencyInput(String(item.unitPrice)) : ""}
-                      onChange={e => updateLineItem(idx, "unitPrice", parseFloat(e.target.value.replace(/,/g, "")) || 0)}
-                      className="bg-white/[0.03] border-white/[0.08] text-sm h-9 pl-7"
+              {/* ── Desktop rows (hidden on mobile) ── */}
+              <div className="hidden sm:flex flex-col gap-2">
+                {lineItems.map((item, idx) => (
+                  <div key={idx} className="grid grid-cols-[1fr_80px_120px_110px_40px] gap-2 items-start bg-white/[0.04] px-3 py-2.5 rounded-xl border border-white/[0.19]">
+                    <textarea
+                      placeholder="Item description..."
+                      value={item.description}
+                      rows={2}
+                      onChange={e => updateLineItem(idx, "description", e.target.value)}
+                      className="bg-white/[0.03] border-[1.5px] border-white/[0.08] rounded-md text-sm px-3 py-2 resize-none w-full focus:outline-none focus:border-primary"
+                      style={{ minHeight: "90px", lineHeight: "1.5" }}
                     />
+                    <Input
+                      type="number" min={0} step={1} placeholder="1"
+                      value={item.quantity || ""}
+                      onChange={e => updateLineItem(idx, "quantity", parseInt(e.target.value) || 0)}
+                      className="bg-white/[0.03] border-white/[0.08] text-sm h-9 mt-1"
+                    />
+                    <div className="relative mt-1">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">Rs</span>
+                      <Input
+                        placeholder="0"
+                        value={item.unitPrice ? formatCurrencyInput(String(item.unitPrice)) : ""}
+                        onChange={e => updateLineItem(idx, "unitPrice", parseFloat(e.target.value.replace(/,/g, "")) || 0)}
+                        className="bg-white/[0.03] border-white/[0.08] text-sm h-9 pl-8"
+                      />
+                    </div>
+                    <div className="bg-white/[0.03] border border-white/[0.08] rounded-md h-9 flex items-center px-3 mt-1">
+                      <span className="text-sm font-medium text-slate-300">Rs {fmt(item.lineTotal)}</span>
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={() => removeLineItem(idx)}
+                      disabled={lineItems.length === 1} className="text-slate-400 hover:text-destructive h-9 w-9 mt-1">
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
+                ))}
+              </div>
 
-                  {/* Line Total (auto) */}
-                  <div className="bg-white/[0.03] border border-white/[0.08] rounded-md h-9 flex items-center px-3 mt-1">
-                    <span className="text-sm font-medium text-slate-300">Rs {fmt(item.lineTotal)}</span>
+              {/* ── Mobile rows (hidden on desktop) ── */}
+              <div className="flex sm:hidden flex-col gap-3">
+                {lineItems.map((item, idx) => (
+                  <div key={idx} className="bg-white/[0.04] rounded-xl border border-white/[0.19] p-3 space-y-3">
+                    {/* Description — full width, tall */}
+                    <div className="space-y-1">
+                      <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Description</span>
+                      <textarea
+                        placeholder="Item description..."
+                        value={item.description}
+                        rows={3}
+                        onChange={e => updateLineItem(idx, "description", e.target.value)}
+                        className="bg-white/[0.03] border-[1.5px] border-white/[0.08] rounded-md text-sm px-3 py-2 resize-none w-full focus:outline-none focus:border-primary"
+                        style={{ lineHeight: "1.5" }}
+                      />
+                    </div>
+
+                    {/* Qty + Unit Price on one row */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Qty</span>
+                        <Input
+                          type="number" min={0} step={1} placeholder="1"
+                          value={item.quantity || ""}
+                          onChange={e => updateLineItem(idx, "quantity", parseInt(e.target.value) || 0)}
+                          className="bg-white/[0.03] border-white/[0.08] text-sm h-9"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Unit Price</span>
+                        <div className="relative">
+                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs">Rs</span>
+                          <Input
+                            placeholder="0"
+                            value={item.unitPrice ? formatCurrencyInput(String(item.unitPrice)) : ""}
+                            onChange={e => updateLineItem(idx, "unitPrice", parseFloat(e.target.value.replace(/,/g, "")) || 0)}
+                            className="bg-white/[0.03] border-white/[0.08] text-sm h-9 pl-8"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Line Total + Delete on one row */}
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Line Total</span>
+                        <p className="text-sm font-bold text-white">Rs {fmt(item.lineTotal)}</p>
+                      </div>
+                      <Button variant="ghost" size="icon" onClick={() => removeLineItem(idx)}
+                        disabled={lineItems.length === 1}
+                        className="text-slate-400 hover:text-destructive hover:bg-red-400/10 h-9 w-9">
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
-
-                  {/* Remove */}
-                  <Button variant="ghost" size="icon" onClick={() => removeLineItem(idx)}
-                    disabled={lineItems.length === 1} className="text-slate-400 hover:text-destructive h-9 w-9 mt-1">
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              ))}
+                ))}
+              </div>
 
               <p className="text-xs text-slate-400 text-right">
                 {lineItems.length} row{lineItems.length !== 1 ? "s" : ""} · PDF rows auto-size to description length
@@ -523,7 +543,7 @@ export default function InvoiceGenerator() {
 
             {/* Totals panel */}
             <div className="border-t border-white/[0.19] pt-6 flex justify-end">
-              <div className="w-72 space-y-3">
+              <div className="w-full sm:w-72 space-y-3">
 
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-500">Subtotal</span>
@@ -532,9 +552,9 @@ export default function InvoiceGenerator() {
 
                 {templateHasField("discount") && (
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-slate-500">Discount </span>
+                    <span className="text-slate-500">Discount</span>
                     <div className="relative w-28">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">Rs </span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">Rs</span>
                       <Input value={discountAmount} onChange={e => setDiscountAmount(formatCurrencyInput(e.target.value))} className="h-8 text-right text-sm bg-white/[0.04] border-white/[0.08] pl-7" />
                     </div>
                   </div>
@@ -545,7 +565,6 @@ export default function InvoiceGenerator() {
                     <span className="text-slate-500">Tax (%)</span>
                     <div className="relative w-28">
                       <Input type="number" min={0} max={100} value={taxPercent} onChange={e => setTaxPercent(e.target.value)} className="h-8 text-right text-sm bg-white/[0.04] border-white/[0.08]" placeholder="0" />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></span>
                     </div>
                   </div>
                 )}
@@ -566,7 +585,6 @@ export default function InvoiceGenerator() {
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-slate-500">Amount Paid (Rs)</span>
                     <div className="relative w-28">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></span>
                       <Input value={amountPaid} onChange={e => setAmountPaid(formatCurrencyInput(e.target.value))} className="h-8 text-right text-sm bg-white/[0.04] border-white/[0.08] pl-7" />
                     </div>
                   </div>
@@ -593,21 +611,22 @@ export default function InvoiceGenerator() {
 
         {/* ── STEP 4 ─────────────────────────────────────────────────────── */}
         {step === 4 && (
-          <div className="p-16 text-center animate-in zoom-in duration-500 flex flex-col items-center">
-            <div className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mb-6">
-              <CheckCircle2 className="w-12 h-12 text-emerald-600" />
+          <div className="p-8 sm:p-16 text-center animate-in zoom-in duration-500 flex flex-col items-center">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 bg-emerald-400/10 border border-emerald-400/20 rounded-full flex items-center justify-center mb-6">
+              <CheckCircle2 className="w-10 h-10 sm:w-12 sm:h-12 text-emerald-400" />
             </div>
-            <h2 className="text-3xl font-bold text-white mb-2">Invoice Generated!</h2>
-            <p className="text-slate-500 max-w-md mb-8">
+            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">Invoice Generated!</h2>
+            <p className="text-slate-500 text-sm sm:text-base max-w-md mb-8">
               Your invoice has been successfully created, saved, and uploaded to the cloud.
             </p>
-            <div className="flex space-x-4">
-              <Button asChild variant="outline" className="rounded-xl h-12 px-6 border-white/[0.08] shadow-sm">
+            {/* ── Buttons stacked on mobile, side by side on sm+ ── */}
+            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+              <Button asChild variant="outline" className="rounded-xl h-12 px-6 border-white/[0.08] shadow-sm w-full sm:w-auto">
                 <a href={generatedUrl} download={`invoice-${Date.now()}.pdf`} target="_blank" rel="noopener noreferrer">
                   <Download className="w-5 h-5 mr-2" /> Download PDF
                 </a>
               </Button>
-              <Button asChild className="rounded-xl h-12 px-6 shadow-md shadow-primary/20">
+              <Button asChild className="rounded-xl h-12 px-6 shadow-md shadow-primary/20 w-full sm:w-auto">
                 <Link href="/invoices">View All Invoices</Link>
               </Button>
             </div>
